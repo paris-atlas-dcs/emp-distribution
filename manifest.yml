@@ -13,29 +13,25 @@ components:
 
   psmonserver:
     repo: paris-atlas-dcs/psmonserver
-    tag: "260409.3.7"
-    asset: "psMonServer-260409.3.7.tar.gz"
+    tag: "260409.3.6"
+    asset: "psMonServer-260409.3.6.tar.gz"
 
-  LpGbtSw:
-    repo: paris-atlas-dcs/LpGbtSw
-    tag: "260408.1.12"
-    asset: "LpGbtSw-demonstrators.tar.gz"
+  # LpGbtSw demonstrators: not separately packaged yet.
+  # CLI tools (lpGbtIdentify, lpGbtAdc, etc.) are built from LpGbtSw
+  # but currently deployed manually. TODO: add CI packaging for demonstrators.
 
 # --- Base image components (used by build-image workflow) ---
 base:
   epos-bsp:
     board: "emp-03-00-00"
     petalinux: "2023.2"
-    note: "Boot files (BOOT.BIN, image.ub, boot.scr) from epos-bsp CI"
 
   epos-rootfs:
     os: "AlmaLinux 9"
     arch: "aarch64"
-    note: "Root filesystem from epos-rootfs CI"
 
   firmware:
     hw-description: "emp-03-00-00"
-    note: "FPGA bitstream + device tree overlay from epos-bsp/hw-description"
 
 # --- WinCC OA (not on board, tracked for compatibility) ---
 scada:
