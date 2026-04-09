@@ -50,9 +50,18 @@ for tarball in "$STAGING"/*.tar.gz; do
     tar xzf "$tarball" -C "$STAGING/bundle/"
 done
 
+# Strip version suffixes from directory names (OpcUaLpGbtServer-260409.1.65 → OpcUaLpGbtServer)
+cd "$STAGING/bundle"
+for dir in OpcUaLpGbtServer-* psMonServer-*; do
+    [ -d "$dir" ] || continue
+    clean=$(echo "$dir" | sed 's/-[0-9].*//')
+    [ "$dir" != "$clean" ] && mv "$dir" "$clean" && echo "  $dir → $clean"
+done
+cd "$REPO_ROOT"
+
 # Copy systemd units
 mkdir -p "$STAGING/bundle/systemd"
-cp "$REPO_ROOT/systemd"/*.service "$STAGING/bundle/systemd/"
+cp "$REPO_ROOT/systemd"/*.service "$REPO_ROOT/systemd"/*.timer "$STAGING/bundle/systemd/" 2>/dev/null || true
 
 # Write version manifest into the bundle
 cp "$MANIFEST" "$STAGING/bundle/manifest.yml"
