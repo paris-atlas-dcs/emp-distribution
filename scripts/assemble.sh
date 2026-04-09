@@ -3,7 +3,7 @@
 #
 # Usage: ./assemble.sh [version]
 #   Reads manifest.yml, downloads each component's release asset from GitHub,
-#   and assembles a single emp-update-<version>.tar.gz
+#   and assembles a single emp-<version>.tar.gz
 #
 # Requires: gh (GitHub CLI), yq (YAML parser)
 
@@ -16,7 +16,7 @@ MANIFEST="$REPO_ROOT/manifest.yml"
 VERSION="${1:-$(yq '.distribution' "$MANIFEST")}"
 STAGING="/tmp/emp-assemble-$$"
 OUTPUT_DIR="$REPO_ROOT"
-OUTPUT="emp-update-${VERSION}.tar.gz"
+OUTPUT="emp-${VERSION}.tar.gz"
 
 echo "=== EMP Distribution Assembly ==="
 echo "Version: $VERSION"

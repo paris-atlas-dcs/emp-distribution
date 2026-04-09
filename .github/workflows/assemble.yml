@@ -1,0 +1,147 @@
+name: Assemble Update
+
+on:
+  push:
+    branches: [main]
+    paths: [manifest.yml]
+  workflow_dispatch:
+    inputs:
+      version_override:
+        description: 'Override distribution version (leave empty to use manifest.yml)'
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  assemble:
+    name: Assemble Update Bundle
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install tools
+        run: |
+          sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
+
+      - name: Generate token for private repo access
+        id: app-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          owner: paris-atlas-dcs
+          repositories: OpcUaLpGbtServer,psmonserver,LpGbtSw,UaoClientForLpGbt,fwlpgbt
+
+      - name: Determine version
+        id: version
+        run: |
+          if [ -n "${{ inputs.version_override }}" ]; then
+            echo "version=${{ inputs.version_override }}" >> $GITHUB_OUTPUT
+          else
+            echo "version=$(yq '.distribution' manifest.yml)" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Download components
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          mkdir -p staging
+          for component in $(yq '.components | keys | .[]' manifest.yml); do
+            repo=$(yq ".components.$component.repo" manifest.yml)
+            tag=$(yq ".components.$component.tag // \"\"" manifest.yml)
+            asset=$(yq ".components.$component.asset" manifest.yml)
+
+            if [ -n "$tag" ]; then
+              echo "Downloading $component (pinned: $tag) from $repo..."
+              gh release download "$tag" --repo "$repo" --pattern "$asset" --dir staging --clobber
+            else
+              echo "Downloading $component (latest) from $repo..."
+              gh release download --repo "$repo" --pattern "$asset" --dir staging --clobber
+            fi
+          done
+
+      - name: Clone client libraries and SCADA components
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          mkdir -p staging/client-libraries staging/scada
+
+          # Client libraries (source repos for developers)
+          for component in $(yq '.client-libraries | keys | .[]' manifest.yml 2>/dev/null); do
+            repo=$(yq ".client-libraries.$component.repo" manifest.yml)
+            echo "Cloning $component from $repo..."
+            gh repo clone "$repo" "staging/client-libraries/$component" -- --depth 1 2>/dev/null || true
+            rm -rf "staging/client-libraries/$component/.git"
+          done
+
+          # SCADA integration (source repos for WinCC OA developers)
+          for component in $(yq '.scada | keys | .[]' manifest.yml 2>/dev/null); do
+            repo=$(yq ".scada.$component.repo // \"\"" manifest.yml)
+            [ -z "$repo" ] && continue
+            echo "Cloning $component from $repo..."
+            gh repo clone "$repo" "staging/scada/$component" -- --depth 1 2>/dev/null || true
+            rm -rf "staging/scada/$component/.git"
+          done
+
+      - name: Assemble bundle
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          mkdir -p bundle
+
+          # Extract on-board component tarballs
+          for tarball in staging/*.tar.gz; do
+            [ -f "$tarball" ] || continue
+            echo "Extracting $(basename $tarball)..."
+            tar xzf "$tarball" -C bundle/
+          done
+
+          # Copy systemd units
+          mkdir -p bundle/systemd
+          cp systemd/*.service bundle/systemd/
+
+          # Copy client libraries (source, for developers)
+          if [ -d staging/client-libraries ] && [ "$(ls -A staging/client-libraries)" ]; then
+            cp -r staging/client-libraries bundle/
+          fi
+
+          # Copy SCADA integration (source, for WinCC OA developers)
+          if [ -d staging/scada ] && [ "$(ls -A staging/scada)" ]; then
+            cp -r staging/scada bundle/
+          fi
+
+          # Copy manifest and version
+          cp manifest.yml bundle/
+          echo "$VERSION" > bundle/version
+
+          # Package
+          tar czf "emp-${VERSION}.tar.gz" -C bundle .
+          echo "Built emp-${VERSION}.tar.gz"
+          ls -lh "emp-${VERSION}.tar.gz"
+
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          TAG="update-${VERSION}"
+
+          # Tag if not exists
+          git tag "$TAG" 2>/dev/null && git push origin "$TAG" || true
+
+          gh release create "$TAG" \
+            "emp-${VERSION}.tar.gz" \
+            manifest.yml \
+            --title "Update $VERSION" \
+            --generate-notes \
+            || gh release upload "$TAG" "emp-${VERSION}.tar.gz" manifest.yml --clobber
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: emp-${{ steps.version.outputs.version }}
+          path: emp-*.tar.gz
+          retention-days: 30

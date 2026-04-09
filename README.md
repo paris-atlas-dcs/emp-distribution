@@ -49,7 +49,7 @@ This repo assembles pre-built components from upstream repositories into deploya
 ### Deploy a software update
 
 ```bash
-./scripts/deploy.sh dcslab-emptest2 emp-update-2026.04.1.tar.gz
+./scripts/deploy.sh dcslab-emptest2 emp-2026.04.1.tar.gz
 ```
 
 ### Roll back to previous version

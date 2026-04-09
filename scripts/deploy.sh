@@ -2,7 +2,7 @@
 # deploy.sh — Deploy an emp software update to an EMP board
 #
 # Usage: ./deploy.sh <site> <update-tarball>
-#   e.g.: ./deploy.sh dcslab-emptest2 emp-update-2026.04.1.tar.gz
+#   e.g.: ./deploy.sh dcslab-emptest2 emp-2026.04.1.tar.gz
 #
 # Prerequisites:
 #   - SSH access to the target board (configured in sites/<site>/site.yml)
@@ -31,8 +31,8 @@ if [ ! -d "$SITE_DIR" ]; then
     exit 1
 fi
 
-# Extract version from tarball name (emp-update-VERSION.tar.gz)
-VERSION=$(echo "$TARBALL" | sed 's/emp-update-\(.*\)\.tar\.gz/\1/')
+# Extract version from tarball name (emp-VERSION.tar.gz)
+VERSION=$(echo "$TARBALL" | sed 's/emp-\(.*\)\.tar\.gz/\1/')
 REMOTE_BASE="/opt/emp"
 
 # Read target host from site config (default: site name)
