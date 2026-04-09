@@ -1,7 +1,7 @@
 [Unit]
 Description=EMP Board Monitor — OPC UA server for baseboard peripherals
-After=network.target emp-reset.service
-Requires=emp-reset.service
+After=network.target emp-clock.service
+Requires=emp-clock.service
 
 [Service]
 Type=simple
