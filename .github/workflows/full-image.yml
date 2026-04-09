@@ -266,24 +266,16 @@ jobs:
       # PUBLISH
       # =====================================================================
 
-      - name: Create release
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          VERSION="${{ inputs.version }}"
-          TAG="image-${VERSION}"
-          git tag "$TAG" 2>/dev/null && git push origin "$TAG" || true
-          gh release create "$TAG" \
-            emp-image-${VERSION}-boot.tar.gz \
-            emp-image-${VERSION}-rootfs.tar.gz \
-            manifest.yml \
-            --title "Full Image ${VERSION} (${{ inputs.board }})" \
-            --generate-notes
-
-      - name: Upload artifacts
-        if: always() && !cancelled()
-        uses: actions/upload-artifact@v4
+      - name: Upload boot files to EOS
+        uses: paris-atlas-dcs/epos-ci-images/.github/actions/eos-upload@master
         with:
-          name: emp-image-${{ inputs.version }}
-          path: emp-image-*.tar.gz
-          retention-days: 30
+          file: emp-image-${{ inputs.version }}-boot.tar.gz
+          eos-dir: /eos/project/a/atlasdcsdata/ci-artifacts/emp-distribution/image/${{ inputs.board }}
+          keytab: ${{ secrets.CERN_KEYTAB_B64 }}
+
+      - name: Upload rootfs to EOS
+        uses: paris-atlas-dcs/epos-ci-images/.github/actions/eos-upload@master
+        with:
+          file: emp-image-${{ inputs.version }}-rootfs.tar.gz
+          eos-dir: /eos/project/a/atlasdcsdata/ci-artifacts/emp-distribution/image/${{ inputs.board }}
+          keytab: ${{ secrets.CERN_KEYTAB_B64 }}

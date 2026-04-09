@@ -177,26 +177,9 @@ jobs:
           echo "Built emp-${VERSION}.tar.gz"
           ls -lh "emp-${VERSION}.tar.gz"
 
-      - name: Create release
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          VERSION="${{ steps.version.outputs.version }}"
-          TAG="update-${VERSION}"
-
-          # Tag if not exists
-          git tag "$TAG" 2>/dev/null && git push origin "$TAG" || true
-
-          gh release create "$TAG" \
-            "emp-${VERSION}.tar.gz" \
-            manifest.yml \
-            --title "Update $VERSION" \
-            --generate-notes \
-            || gh release upload "$TAG" "emp-${VERSION}.tar.gz" manifest.yml --clobber
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
+      - name: Upload to EOS
+        uses: paris-atlas-dcs/epos-ci-images/.github/actions/eos-upload@master
         with:
-          name: emp-${{ steps.version.outputs.version }}
-          path: emp-*.tar.gz
-          retention-days: 30
+          file: emp-${{ steps.version.outputs.version }}.tar.gz
+          eos-dir: /eos/project/a/atlasdcsdata/ci-artifacts/emp-distribution/software
+          keytab: ${{ secrets.CERN_KEYTAB_B64 }}
