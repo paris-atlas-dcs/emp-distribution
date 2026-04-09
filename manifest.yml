@@ -17,6 +17,13 @@ components:
     asset: "psMonServer-*.tar.gz"
     # tag: "260409.3.6"   # uncomment to pin
 
+  # FPGA firmware: pre-built bitstream + device tree overlay
+  # Generated from hw-description .xsa via xsa-to-overlays.
+  # When a release exists with these assets, assembly includes them.
+  # firmware:
+  #   repo: paris-atlas-dcs/atlas-dcs-emp-epos
+  #   asset: "emp-firmware-*.tar.gz"
+
 # --- Base image components (used by build-image workflow) ---
 base:
   epos-bsp:
