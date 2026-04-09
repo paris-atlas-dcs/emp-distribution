@@ -52,10 +52,16 @@ jobs:
           mkdir -p staging
           for component in $(yq '.components | keys | .[]' manifest.yml); do
             repo=$(yq ".components.$component.repo" manifest.yml)
-            tag=$(yq ".components.$component.tag" manifest.yml)
+            tag=$(yq ".components.$component.tag // \"\"" manifest.yml)
             asset=$(yq ".components.$component.asset" manifest.yml)
-            echo "Downloading $component ($tag) from $repo..."
-            gh release download "$tag" --repo "$repo" --pattern "$asset" --dir staging --clobber
+
+            if [ -n "$tag" ]; then
+              echo "Downloading $component (pinned: $tag) from $repo..."
+              gh release download "$tag" --repo "$repo" --pattern "$asset" --dir staging --clobber
+            else
+              echo "Downloading $component (latest) from $repo..."
+              gh release download --repo "$repo" --pattern "$asset" --dir staging --clobber
+            fi
           done
 
       - name: Assemble bundle

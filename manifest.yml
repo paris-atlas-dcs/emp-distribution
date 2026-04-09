@@ -1,24 +1,21 @@
 # emp-distribution manifest
-# This file pins the exact version of every component in the distribution.
-# Edit this file to bump component versions; CI assembles the bundle.
+#
+# By default, assembly pulls the LATEST release from each repo.
+# To pin a specific version, uncomment and set the 'tag' field.
+# The asset pattern uses a glob — it matches whatever the latest release ships.
 
-distribution: "2026.04.1"
+distribution: "2026.04.2"
 
-# --- Software (deployed via update tarball) ---
 components:
   OpcUaLpGbtServer:
     repo: paris-atlas-dcs/OpcUaLpGbtServer
-    tag: "260408.1.62"
-    asset: "OpcUaLpGbtServer-260408.1.62.tar.gz"
+    asset: "OpcUaLpGbtServer-*.tar.gz"
+    # tag: "260408.1.62"  # uncomment to pin
 
   psmonserver:
     repo: paris-atlas-dcs/psmonserver
-    tag: "260409.3.6"
-    asset: "psMonServer-260409.3.6.tar.gz"
-
-  # LpGbtSw demonstrators: not separately packaged yet.
-  # CLI tools (lpGbtIdentify, lpGbtAdc, etc.) are built from LpGbtSw
-  # but currently deployed manually. TODO: add CI packaging for demonstrators.
+    asset: "psMonServer-*.tar.gz"
+    # tag: "260409.3.6"   # uncomment to pin
 
 # --- Base image components (used by build-image workflow) ---
 base:

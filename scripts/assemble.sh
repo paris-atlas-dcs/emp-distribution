@@ -26,14 +26,19 @@ echo ""
 rm -rf "$STAGING"
 mkdir -p "$STAGING"
 
-# Download each component
+# Download each component (latest by default, pinned if tag is set)
 for component in $(yq '.components | keys | .[]' "$MANIFEST"); do
     repo=$(yq ".components.$component.repo" "$MANIFEST")
-    tag=$(yq ".components.$component.tag" "$MANIFEST")
+    tag=$(yq ".components.$component.tag // \"\"" "$MANIFEST")
     asset=$(yq ".components.$component.asset" "$MANIFEST")
 
-    echo "Downloading $component ($tag) from $repo..."
-    gh release download "$tag" --repo "$repo" --pattern "$asset" --dir "$STAGING" --clobber
+    if [ -n "$tag" ]; then
+        echo "Downloading $component (pinned: $tag) from $repo..."
+        gh release download "$tag" --repo "$repo" --pattern "$asset" --dir "$STAGING" --clobber
+    else
+        echo "Downloading $component (latest) from $repo..."
+        gh release download --repo "$repo" --pattern "$asset" --dir "$STAGING" --clobber
+    fi
 done
 
 # Extract server tarballs into structured layout
