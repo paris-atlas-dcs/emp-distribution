@@ -1,0 +1,141 @@
+name: Build Base Image
+
+# Triggered manually — base images are built rarely (new firmware, OS update)
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Base image version (e.g. 2026.04.1)'
+        required: true
+        type: string
+      board:
+        description: 'Board target'
+        type: choice
+        options:
+          - emp
+          - trenz
+        default: emp
+      include_software:
+        description: 'Include latest OPC UA servers in the base image'
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+  packages: read
+
+jobs:
+  build:
+    name: Assemble Base Image
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install tools
+        run: |
+          sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
+
+      - name: Generate token for private repo access
+        id: app-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          owner: paris-atlas-dcs
+          repositories: OpcUaLpGbtServer,psmonserver,LpGbtSw
+
+      # --- Download boot files from EOS ---
+      - name: Download boot files from EOS
+        uses: paris-atlas-dcs/epos-ci-images/.github/actions/eos-download@master
+        with:
+          eos-dir: /eos/project/a/atlasdcsdata/ci-artifacts/epos-bsp/${{ inputs.board }}/master
+          filename: latest
+          pattern: "^${{ inputs.board }}-.*-boot-files\\.tar\\.gz$"
+          destination: staging/boot-files.tar.gz
+          keytab: ${{ secrets.CERN_KEYTAB_B64 }}
+
+      # --- Download rootfs + kernel modules from EOS ---
+      - name: Download rootfs from EOS
+        uses: paris-atlas-dcs/epos-ci-images/.github/actions/eos-download@master
+        with:
+          eos-dir: /eos/project/a/atlasdcsdata/ci-artifacts/epos-bsp/${{ inputs.board }}/master
+          filename: latest
+          pattern: "^${{ inputs.board }}-.*-rootfs-kernel-modules\\.tar\\.gz$"
+          destination: staging/rootfs.tar.gz
+          keytab: ${{ secrets.CERN_KEYTAB_B64 }}
+
+      # --- Download OPC UA servers from GitHub ---
+      - name: Download software components
+        if: inputs.include_software
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          mkdir -p staging/software
+          for component in $(yq '.components | keys | .[]' manifest.yml); do
+            repo=$(yq ".components.$component.repo" manifest.yml)
+            asset=$(yq ".components.$component.asset" manifest.yml)
+            echo "Downloading $component (latest) from $repo..."
+            gh release download --repo "$repo" --pattern "$asset" --dir staging/software --clobber
+          done
+
+      # --- Assemble base image ---
+      - name: Assemble base image
+        run: |
+          VERSION="${{ inputs.version }}"
+          BOARD="${{ inputs.board }}"
+          IMAGE_DIR="emp-base-${VERSION}"
+
+          mkdir -p "$IMAGE_DIR/boot" "$IMAGE_DIR/rootfs" "$IMAGE_DIR/software" "$IMAGE_DIR/firmware"
+
+          # Boot files
+          tar xzf staging/boot-files.tar.gz -C "$IMAGE_DIR/boot/"
+          echo "Boot files extracted"
+
+          # Rootfs
+          cp staging/rootfs.tar.gz "$IMAGE_DIR/rootfs/"
+          echo "Rootfs copied (extract to SD card root partition)"
+
+          # Firmware loading tools
+          cp scripts/loadFirmware.sh "$IMAGE_DIR/firmware/"
+
+          # Software (if included)
+          if [ -d staging/software ]; then
+            for tarball in staging/software/*.tar.gz; do
+              [ -f "$tarball" ] || continue
+              tar xzf "$tarball" -C "$IMAGE_DIR/software/"
+            done
+          fi
+
+          # Systemd units
+          mkdir -p "$IMAGE_DIR/systemd"
+          cp systemd/*.service "$IMAGE_DIR/systemd/"
+
+          # Version + manifest
+          echo "$VERSION" > "$IMAGE_DIR/version"
+          cp manifest.yml "$IMAGE_DIR/"
+
+          # Package
+          tar czf "emp-base-${VERSION}.tar.gz" "$IMAGE_DIR/"
+          ls -lh "emp-base-${VERSION}.tar.gz"
+
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION="${{ inputs.version }}"
+          TAG="base-${VERSION}"
+          git tag "$TAG" 2>/dev/null && git push origin "$TAG" || true
+          gh release create "$TAG" \
+            "emp-base-${VERSION}.tar.gz" \
+            manifest.yml \
+            --title "Base Image $VERSION (${{ inputs.board }})" \
+            --notes "Base image for ${{ inputs.board }} board. Contains boot files, rootfs, kernel modules, and pre-installed software."
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: emp-base-${{ inputs.version }}
+          path: emp-base-*.tar.gz
+          retention-days: 30

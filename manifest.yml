@@ -17,25 +17,24 @@ components:
     asset: "psMonServer-*.tar.gz"
     # tag: "260409.3.6"   # uncomment to pin
 
-  # FPGA firmware: pre-built bitstream + device tree overlay
-  # Generated from hw-description .xsa via xsa-to-overlays.
-  # When a release exists with these assets, assembly includes them.
-  # firmware:
-  #   repo: paris-atlas-dcs/atlas-dcs-emp-epos
-  #   asset: "emp-firmware-*.tar.gz"
+# --- EOS-hosted components (CERN EOS, Kerberos auth) ---
+eos:
+  boot-files:
+    eos-dir: /eos/project/a/atlasdcsdata/ci-artifacts/epos-bsp/emp/master
+    pattern: "^emp-.*-boot-files\\.tar\\.gz$"
+    note: "BOOT.BIN, image.ub, boot.scr — base image only"
 
-# --- Base image components (used by build-image workflow) ---
+  rootfs:
+    eos-dir: /eos/project/a/atlasdcsdata/ci-artifacts/epos-bsp/emp/master
+    pattern: "^emp-.*-rootfs-kernel-modules\\.tar\\.gz$"
+    note: "AlmaLinux 9 rootfs + PetaLinux kernel modules — base image only"
+
+# --- Base image metadata ---
 base:
-  epos-bsp:
-    board: "emp-03-00-00"
-    petalinux: "2023.2"
-
-  epos-rootfs:
-    os: "AlmaLinux 9"
-    arch: "aarch64"
-
-  firmware:
-    hw-description: "emp-03-00-00"
+  board: "emp"
+  petalinux: "2023.2"
+  os: "AlmaLinux 9"
+  arch: "aarch64"
 
 # --- WinCC OA (not on board, tracked for compatibility) ---
 scada:
