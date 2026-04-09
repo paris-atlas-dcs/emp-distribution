@@ -1,0 +1,17 @@
+[Unit]
+Description=EMP Board Monitor — OPC UA server for baseboard peripherals
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/emp/current/opcuaempmon/bin
+ExecStart=/opt/emp/current/opcuaempmon/bin/OpcUaSampleServerNameChangeItInDesign --config_file config-site.xml
+Restart=on-failure
+RestartSec=5
+StandardOutput=append:/var/log/emp/opcua-empmon.log
+StandardError=append:/var/log/emp/opcua-empmon.log
+
+[Install]
+WantedBy=multi-user.target

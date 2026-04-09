@@ -1,0 +1,10 @@
+[Unit]
+Description=Run Firefly temperature monitor periodically
+
+[Timer]
+OnBootSec=60s
+OnUnitActiveSec=30s
+Unit=tempMonitor.service
+
+[Install]
+WantedBy=timers.target

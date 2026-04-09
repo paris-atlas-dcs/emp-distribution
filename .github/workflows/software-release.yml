@@ -64,6 +64,51 @@ jobs:
             fi
           done
 
+      - name: Download GitLab components
+        env:
+          GITLAB_PAT: ${{ secrets.CERN_GITLAB_PAT }}
+        run: |
+          GITLAB_URL="https://gitlab.cern.ch"
+          mkdir -p staging/gitlab
+
+          # opcuaempmon: download latest successful build artifact (RPM)
+          echo "Downloading opcuaempmon from CERN GitLab..."
+          PROJECT_ID=$(curl -sf -H "PRIVATE-TOKEN: $GITLAB_PAT" \
+            "$GITLAB_URL/api/v4/projects/atlas-dcs-opcua-servers%2Fopcuaempmon" | python3 -c "import json,sys; print(json.load(sys.stdin)['id'])")
+          PIPELINE_ID=$(curl -sf -H "PRIVATE-TOKEN: $GITLAB_PAT" \
+            "$GITLAB_URL/api/v4/projects/$PROJECT_ID/pipelines?status=success&per_page=1" | python3 -c "import json,sys; print(json.load(sys.stdin)[0]['id'])")
+          JOB_ID=$(curl -sf -H "PRIVATE-TOKEN: $GITLAB_PAT" \
+            "$GITLAB_URL/api/v4/projects/$PROJECT_ID/pipelines/$PIPELINE_ID/jobs" | python3 -c "import json,sys; [print(j['id']) for j in json.load(sys.stdin) if j['name']=='build']")
+          curl -sf -H "PRIVATE-TOKEN: $GITLAB_PAT" \
+            "$GITLAB_URL/api/v4/projects/$PROJECT_ID/jobs/$JOB_ID/artifacts" \
+            -o staging/gitlab/opcuaempmon-artifacts.zip
+          mkdir -p staging/gitlab/opcuaempmon
+          unzip -o staging/gitlab/opcuaempmon-artifacts.zip -d staging/gitlab/opcuaempmon/
+          echo "  Downloaded $(ls staging/gitlab/opcuaempmon/build/*.rpm 2>/dev/null | wc -l) RPM(s)"
+
+          # emp-tools: clone and build from source (CI is broken upstream)
+          echo "Cloning emp-tools from CERN GitLab..."
+          git clone --depth 1 "https://oauth2:${GITLAB_PAT}@gitlab.cern.ch/emci-emp/emp-tools.git" staging/gitlab/emp-tools-src
+
+      - name: Build emp-tools from source
+        run: |
+          docker run --rm --platform linux/arm64 \
+            -v ${{ github.workspace }}/staging/gitlab/emp-tools-src:/src \
+            -v ${{ github.workspace }}/staging/gitlab:/out \
+            ghcr.io/paris-atlas-dcs/lpgbt-builder:latest \
+            bash -c "
+              cd /src/LogIt && mkdir -p build && cd build && cmake .. && make -j\$(nproc) && cd /src &&
+              mkdir -p build && cd build &&
+              cmake ../ -DHAVE_UIO=ON -DCMAKE_BUILD_TYPE=Release -DBUILD_FOR=EMPv3 \
+                -DCMAKE_INSTALL_RPATH='\\\$ORIGIN/../lib' -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON &&
+              make -j\$(nproc) &&
+              mkdir -p /out/emp-tools/bin /out/emp-tools/lib &&
+              cp /src/bin_EMPv3/* /out/emp-tools/bin/ &&
+              ldd /out/emp-tools/bin/clkProgrammer | awk '/ => / {print \$3}' | while read dep; do
+                [ -f \"\$dep\" ] && cp -L \"\$dep\" /out/emp-tools/lib/ 2>/dev/null || true
+              done
+            "
+
       - name: Clone client libraries and SCADA components
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
@@ -99,9 +144,26 @@ jobs:
             tar xzf "$tarball" -C bundle/
           done
 
-          # Copy systemd units
+          # Copy opcuaempmon (extract RPM contents)
+          if ls staging/gitlab/opcuaempmon/build/*.rpm 1>/dev/null 2>&1; then
+            echo "Extracting opcuaempmon RPM..."
+            mkdir -p bundle/opcuaempmon
+            cd staging/gitlab/opcuaempmon/build/
+            rpm2cpio *.rpm | cpio -idm 2>/dev/null
+            cp -r usr/local/* ../../../../../../bundle/opcuaempmon/ 2>/dev/null || \
+            cp -r opt/* ../../../../../../bundle/opcuaempmon/ 2>/dev/null || true
+            cd $GITHUB_WORKSPACE
+          fi
+
+          # Copy emp-tools
+          if [ -d staging/gitlab/emp-tools/bin ]; then
+            echo "Copying emp-tools..."
+            cp -r staging/gitlab/emp-tools bundle/
+          fi
+
+          # Copy systemd units (including emp-tools services and timer)
           mkdir -p bundle/systemd
-          cp systemd/*.service bundle/systemd/
+          cp systemd/*.service systemd/*.timer bundle/systemd/ 2>/dev/null || true
 
           # Copy client libraries (source, for developers)
           if [ -d staging/client-libraries ] && [ "$(ls -A staging/client-libraries)" ]; then

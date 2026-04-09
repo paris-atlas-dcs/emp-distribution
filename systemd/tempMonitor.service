@@ -1,0 +1,10 @@
+[Unit]
+Description=Firefly temperature monitor
+
+[Service]
+Type=oneshot
+ExecStart=/opt/emp/current/emp-tools/bin/fireflyMonitor
+User=root
+
+[Install]
+WantedBy=multi-user.target

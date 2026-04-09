@@ -4,7 +4,7 @@
 # To pin a specific version, uncomment and set the 'tag' field.
 # The asset pattern uses a glob — it matches whatever the latest release ships.
 
-distribution: "2026.04.3"
+distribution: "2026.04.4"
 
 # =============================================================================
 # ON-BOARD SOFTWARE — deployed to EMP via update tarball
@@ -21,15 +21,36 @@ components:
     # tag: "260409.3.6"   # uncomment to pin
 
 # =============================================================================
+# CERN GITLAB COMPONENTS — fetched via GitLab API
+# =============================================================================
+gitlab:
+  opcuaempmon:
+    project: atlas-dcs-opcua-servers/opcuaempmon
+    artifact: "build/*.rpm"
+    note: "EMP board monitoring OPC UA server (Firefly, SFP, Si5345, temps, firmware)"
+
+  emp-tools:
+    project: emci-emp/emp-tools
+    build-from-source: true
+    board: "EMPv3"
+    note: "Board tools: clkProgrammer, fwReset, fwStatus, fireflyMonitor, etc."
+
+# =============================================================================
+# SYSTEMD SERVICES — for all on-board components
+# =============================================================================
+# opcua-lpgbt.service    — OpcUaLpGbtServer (port 21182)
+# opcua-psmon.service    — psMonServer (port 22486)
+# opcua-empmon.service   — opcuaempmon (EMP board monitoring)
+# clockProgramer.service — Si5345 clock programming at boot
+# tempMonitor.service    — Firefly temperature monitoring (timer-based)
+
+# =============================================================================
 # CLIENT LIBRARIES — for building OPC UA clients that talk to EMP servers
 # =============================================================================
 client-libraries:
   UaoClientForLpGbt:
     repo: paris-atlas-dcs/UaoClientForLpGbt
     note: "C++ client library for OPC UA communication with OpcUaLpGbtServer"
-    # Future: more client libraries can be added here
-    # UaoClientForPsMon:
-    #   repo: paris-atlas-dcs/UaoClientForPsMon
 
 # =============================================================================
 # SCADA INTEGRATION — WinCC OA / JCOP framework components (run on SCADA hosts)
@@ -38,9 +59,6 @@ scada:
   fwlpgbt:
     repo: paris-atlas-dcs/fwlpgbt
     note: "WinCC OA JCOP framework for lpGBT monitoring panels"
-    # Future: more framework components can be added here
-    # fwPsMon:
-    #   repo: paris-atlas-dcs/fwPsMon
 
 # =============================================================================
 # EOS-HOSTED — CERN EOS artifacts (Kerberos auth required)
