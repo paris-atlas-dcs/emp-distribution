@@ -1,4 +1,4 @@
-name: Assemble Update
+name: Software Release
 
 on:
   push:
@@ -16,7 +16,7 @@ permissions:
 
 jobs:
   assemble:
-    name: Assemble Update Bundle
+    name: Software Release Bundle
     runs-on: ubuntu-latest
 
     steps:

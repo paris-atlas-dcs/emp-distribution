@@ -1,4 +1,4 @@
-name: Build Base Image
+name: Full Image
 
 # Triggered manually — base images are built rarely (new firmware, OS update)
 on:
@@ -26,7 +26,7 @@ permissions:
 
 jobs:
   build:
-    name: Assemble Base Image
+    name: Build Full Image
     runs-on: ubuntu-latest
 
     steps:
