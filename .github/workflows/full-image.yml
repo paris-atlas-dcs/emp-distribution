@@ -42,6 +42,18 @@ jobs:
           sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
           sudo chmod +x /usr/local/bin/yq
 
+      - name: Set up QEMU for aarch64
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
       # CROSS_REPO_PAT: fine-grained PAT with read access to private repos
 
       # =====================================================================
@@ -114,7 +126,7 @@ jobs:
 
           # emp-tools: clone for build
           echo "Cloning emp-tools..."
-          git clone --depth 1 "https://oauth2:${GITLAB_PAT}@gitlab.cern.ch/emci-emp/emp-tools.git" staging/gitlab/emp-tools-src
+          git clone --depth 1 --recurse-submodules "https://oauth2:${GITLAB_PAT}@gitlab.cern.ch/emci-emp/emp-tools.git" staging/gitlab/emp-tools-src
 
       - name: Build emp-tools from source
         run: |
@@ -123,15 +135,15 @@ jobs:
             -v ${{ github.workspace }}/staging/gitlab:/out \
             ghcr.io/paris-atlas-dcs/lpgbt-builder:latest \
             bash -c "
-              cd /src/LogIt && mkdir -p build && cd build && cmake .. && make -j\$(nproc) && cd /src &&
-              mkdir -p build && cd build &&
-              cmake ../ -DHAVE_UIO=ON -DCMAKE_BUILD_TYPE=Release -DBUILD_FOR=EMPv3 \
-                -DCMAKE_INSTALL_RPATH='\\\$ORIGIN/../lib' -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON &&
+              cd /src && mkdir -p build && cd build &&
+              cmake ../ -DHAVE_UIO=ON -DCMAKE_BUILD_TYPE=Release -DBUILD_FOR=EMPv3 &&
               make -j\$(nproc) &&
               mkdir -p /out/emp-tools/bin /out/emp-tools/lib &&
               cp /src/bin_EMPv3/* /out/emp-tools/bin/ &&
-              ldd /out/emp-tools/bin/clkProgrammer | awk '/ => / {print \$3}' | while read dep; do
-                [ -f \"\$dep\" ] && cp -L \"\$dep\" /out/emp-tools/lib/ 2>/dev/null || true
+              for bin in /out/emp-tools/bin/*; do
+                ldd \"\$bin\" 2>/dev/null | awk '/ => / {print \$3}' | while read dep; do
+                  [ -f \"\$dep\" ] && cp -Ln \"\$dep\" /out/emp-tools/lib/ 2>/dev/null || true
+                done
               done
             "
 
