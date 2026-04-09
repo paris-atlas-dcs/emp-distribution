@@ -103,6 +103,8 @@ jobs:
             -v ${{ github.workspace }}/staging/gitlab:/out \
             ghcr.io/paris-atlas-dcs/lpgbt-builder:latest \
             bash -c "
+              git clone --depth 1 https://github.com/paris-atlas-dcs/libuio.git /tmp/libuio &&
+              cd /tmp/libuio && cmake . && make uio && make install && ldconfig &&
               cd /src && mkdir -p build && cd build &&
               cmake ../ -DHAVE_UIO=ON -DCMAKE_BUILD_TYPE=Release -DBUILD_FOR=EMPv3 &&
               make -j\$(nproc) &&
