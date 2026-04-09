@@ -42,14 +42,7 @@ jobs:
           sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
           sudo chmod +x /usr/local/bin/yq
 
-      - name: Generate token for private repo access
-        id: app-token
-        uses: actions/create-github-app-token@v1
-        with:
-          app-id: ${{ secrets.APP_ID }}
-          private-key: ${{ secrets.APP_PRIVATE_KEY }}
-          owner: paris-atlas-dcs
-          repositories: OpcUaLpGbtServer,psmonserver,LpGbtSw,UaoClientForLpGbt,fwlpgbt
+      # CROSS_REPO_PAT: fine-grained PAT with read access to private repos
 
       # =====================================================================
       # DOWNLOAD ALL COMPONENTS
@@ -84,7 +77,7 @@ jobs:
 
       - name: Download software from GitHub
         env:
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          GH_TOKEN: ${{ secrets.CROSS_REPO_PAT }}
         run: |
           mkdir -p staging/software
           for component in $(yq '.components | keys | .[]' manifest.yml); do
