@@ -19,6 +19,11 @@ components:
 
 # --- EOS-hosted components (CERN EOS, Kerberos auth) ---
 eos:
+  firmware-overlay:
+    eos-dir: /eos/project/a/atlasdcsdata/ci-artifacts/epos-bsp/emp/master
+    pattern: "^emp-.*-firmware-overlay\\.tar\\.gz$"
+    note: "hw_desc.bit.bin + hw_desc.dtbo for runtime FPGA loading"
+
   boot-files:
     eos-dir: /eos/project/a/atlasdcsdata/ci-artifacts/epos-bsp/emp/master
     pattern: "^emp-.*-boot-files\\.tar\\.gz$"

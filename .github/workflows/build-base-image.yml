@@ -66,6 +66,16 @@ jobs:
           destination: staging/rootfs.tar.gz
           keytab: ${{ secrets.CERN_KEYTAB_B64 }}
 
+      # --- Download firmware overlay from EOS ---
+      - name: Download firmware overlay from EOS
+        uses: paris-atlas-dcs/epos-ci-images/.github/actions/eos-download@master
+        with:
+          eos-dir: /eos/project/a/atlasdcsdata/ci-artifacts/epos-bsp/${{ inputs.board }}/master
+          filename: latest
+          pattern: "^${{ inputs.board }}-.*-firmware-overlay\\.tar\\.gz$"
+          destination: staging/firmware-overlay.tar.gz
+          keytab: ${{ secrets.CERN_KEYTAB_B64 }}
+
       # --- Download OPC UA servers from GitHub ---
       - name: Download software components
         if: inputs.include_software
@@ -97,7 +107,8 @@ jobs:
           cp staging/rootfs.tar.gz "$IMAGE_DIR/rootfs/"
           echo "Rootfs copied (extract to SD card root partition)"
 
-          # Firmware loading tools
+          # Firmware overlay + loading tools
+          tar xzf staging/firmware-overlay.tar.gz -C "$IMAGE_DIR/firmware/" 2>/dev/null || echo "No firmware overlay available"
           cp scripts/loadFirmware.sh "$IMAGE_DIR/firmware/"
 
           # Software (if included)
