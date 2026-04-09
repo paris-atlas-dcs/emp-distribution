@@ -1,7 +1,6 @@
 [Unit]
 Description=psMonServer — crate PSU OPC UA server
 After=network.target
-Wants=network.target
 
 [Service]
 Type=simple
