@@ -1,11 +1,20 @@
 name: Full Image
 
-# Triggered manually — base images are built rarely (new firmware, OS update)
+# Builds a complete, ready-to-flash SD card image.
+# Boot partition: BOOT.BIN + image.ub + boot.scr
+# Root partition: AlmaLinux 9 + kernel modules + all software pre-installed
+#                 + systemd services enabled + firmware in /lib/firmware/
+#
+# Output: emp-image-<version>-boot.tar.gz   (extract to SD boot partition)
+#         emp-image-<version>-rootfs.tar.gz  (extract to SD root partition)
+#
+# The user does: format SD card (2 partitions), extract both tarballs, boot.
+
 on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Base image version (e.g. 2026.04.1)'
+        description: 'Image version (e.g. 2026.04.1)'
         required: true
         type: string
       board:
@@ -15,10 +24,6 @@ on:
           - emp
           - trenz
         default: emp
-      include_software:
-        description: 'Include latest OPC UA servers in the base image'
-        type: boolean
-        default: true
 
 permissions:
   contents: write
@@ -44,9 +49,12 @@ jobs:
           app-id: ${{ secrets.APP_ID }}
           private-key: ${{ secrets.APP_PRIVATE_KEY }}
           owner: paris-atlas-dcs
-          repositories: OpcUaLpGbtServer,psmonserver,LpGbtSw
+          repositories: OpcUaLpGbtServer,psmonserver,LpGbtSw,UaoClientForLpGbt,fwlpgbt
 
-      # --- Download boot files from EOS ---
+      # =====================================================================
+      # DOWNLOAD ALL COMPONENTS
+      # =====================================================================
+
       - name: Download boot files from EOS
         uses: paris-atlas-dcs/epos-ci-images/.github/actions/eos-download@master
         with:
@@ -56,7 +64,6 @@ jobs:
           destination: staging/boot-files.tar.gz
           keytab: ${{ secrets.CERN_KEYTAB_B64 }}
 
-      # --- Download rootfs + kernel modules from EOS ---
       - name: Download rootfs from EOS
         uses: paris-atlas-dcs/epos-ci-images/.github/actions/eos-download@master
         with:
@@ -66,7 +73,6 @@ jobs:
           destination: staging/rootfs.tar.gz
           keytab: ${{ secrets.CERN_KEYTAB_B64 }}
 
-      # --- Download firmware overlay from EOS ---
       - name: Download firmware overlay from EOS
         uses: paris-atlas-dcs/epos-ci-images/.github/actions/eos-download@master
         with:
@@ -76,77 +82,137 @@ jobs:
           destination: staging/firmware-overlay.tar.gz
           keytab: ${{ secrets.CERN_KEYTAB_B64 }}
 
-      # --- Download OPC UA servers from GitHub ---
-      - name: Download software components
-        if: inputs.include_software
+      - name: Download software from GitHub
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
           mkdir -p staging/software
           for component in $(yq '.components | keys | .[]' manifest.yml); do
             repo=$(yq ".components.$component.repo" manifest.yml)
+            tag=$(yq ".components.$component.tag // \"\"" manifest.yml)
             asset=$(yq ".components.$component.asset" manifest.yml)
-            echo "Downloading $component (latest) from $repo..."
-            gh release download --repo "$repo" --pattern "$asset" --dir staging/software --clobber
+            if [ -n "$tag" ]; then
+              gh release download "$tag" --repo "$repo" --pattern "$asset" --dir staging/software --clobber
+            else
+              gh release download --repo "$repo" --pattern "$asset" --dir staging/software --clobber
+            fi
           done
 
-      # --- Assemble base image ---
-      - name: Assemble base image
+      # =====================================================================
+      # INJECT SOFTWARE INTO ROOTFS
+      # =====================================================================
+
+      - name: Build full image
         run: |
+          set -euo pipefail
           VERSION="${{ inputs.version }}"
-          BOARD="${{ inputs.board }}"
-          IMAGE_DIR="emp-base-${VERSION}"
 
-          mkdir -p "$IMAGE_DIR/boot" "$IMAGE_DIR/rootfs" "$IMAGE_DIR/software" "$IMAGE_DIR/firmware"
+          echo "=== Building EMP Full Image ${VERSION} ==="
 
-          # Boot files
-          tar xzf staging/boot-files.tar.gz -C "$IMAGE_DIR/boot/"
-          echo "Boot files extracted"
+          # --- Extract base rootfs ---
+          echo "[1/7] Extracting base rootfs..."
+          mkdir -p rootfs
+          sudo tar xzf staging/rootfs.tar.gz -C rootfs/
 
-          # Rootfs
-          cp staging/rootfs.tar.gz "$IMAGE_DIR/rootfs/"
-          echo "Rootfs copied (extract to SD card root partition)"
+          # --- Create /opt/emp structure ---
+          echo "[2/7] Creating /opt/emp directory structure..."
+          sudo mkdir -p rootfs/opt/emp/releases/${VERSION}
+          sudo mkdir -p rootfs/opt/emp/config
+          sudo mkdir -p rootfs/var/log/emp
 
-          # Firmware overlay + loading tools
-          tar xzf staging/firmware-overlay.tar.gz -C "$IMAGE_DIR/firmware/" 2>/dev/null || echo "No firmware overlay available"
-          cp scripts/loadFirmware.sh "$IMAGE_DIR/firmware/"
+          # --- Extract server packages ---
+          echo "[3/7] Installing server packages..."
+          for tarball in staging/software/*.tar.gz; do
+            [ -f "$tarball" ] || continue
+            echo "  Extracting $(basename $tarball)..."
+            sudo tar xzf "$tarball" -C rootfs/opt/emp/releases/${VERSION}/
+          done
 
-          # Software (if included)
-          if [ -d staging/software ]; then
-            for tarball in staging/software/*.tar.gz; do
-              [ -f "$tarball" ] || continue
-              tar xzf "$tarball" -C "$IMAGE_DIR/software/"
-            done
+          # Rename versioned dirs to clean names (strip version suffix)
+          cd rootfs/opt/emp/releases/${VERSION}/
+          for dir in OpcUaLpGbtServer-* psMonServer-*; do
+            [ -d "$dir" ] || continue
+            clean=$(echo "$dir" | sed 's/-[0-9].*//')
+            sudo mv "$dir" "$clean"
+            echo "  $dir -> $clean"
+          done
+          cd $GITHUB_WORKSPACE
+
+          # --- Create current symlink ---
+          echo "[4/7] Creating /opt/emp/current symlink..."
+          sudo ln -sfn /opt/emp/releases/${VERSION} rootfs/opt/emp/current
+          echo "${VERSION}" | sudo tee rootfs/opt/emp/version > /dev/null
+
+          # --- Install systemd services ---
+          echo "[5/7] Installing systemd services..."
+          sudo cp systemd/*.service rootfs/etc/systemd/system/
+          sudo mkdir -p rootfs/etc/systemd/system/multi-user.target.wants
+          sudo ln -sf /etc/systemd/system/opcua-lpgbt.service \
+               rootfs/etc/systemd/system/multi-user.target.wants/
+          sudo ln -sf /etc/systemd/system/opcua-psmon.service \
+               rootfs/etc/systemd/system/multi-user.target.wants/
+
+          # --- Install firmware overlay ---
+          echo "[6/7] Installing firmware overlay..."
+          sudo mkdir -p rootfs/lib/firmware
+          sudo tar xzf staging/firmware-overlay.tar.gz -C rootfs/lib/firmware/ \
+               2>/dev/null || echo "  No firmware overlay available"
+          sudo cp scripts/loadFirmware.sh rootfs/usr/local/bin/
+          sudo chmod +x rootfs/usr/local/bin/loadFirmware.sh
+
+          # --- Install default configs ---
+          echo "[7/7] Installing default configs..."
+          if [ -f rootfs/opt/emp/current/OpcUaLpGbtServer/bin/config-example.xml ]; then
+            sudo cp rootfs/opt/emp/current/OpcUaLpGbtServer/bin/config-example.xml \
+                     rootfs/opt/emp/current/OpcUaLpGbtServer/bin/config-site.xml
           fi
+          if [ -f rootfs/opt/emp/current/psMonServer/bin/config.xml ]; then
+            sudo cp rootfs/opt/emp/current/psMonServer/bin/config.xml \
+                     rootfs/opt/emp/current/psMonServer/bin/config-site.xml
+          fi
+          sudo cp manifest.yml rootfs/opt/emp/
 
-          # Systemd units
-          mkdir -p "$IMAGE_DIR/systemd"
-          cp systemd/*.service "$IMAGE_DIR/systemd/"
+          echo ""
+          echo "=== /opt/emp contents ==="
+          sudo ls -la rootfs/opt/emp/
+          sudo ls -la rootfs/opt/emp/current/
 
-          # Version + manifest
-          echo "$VERSION" > "$IMAGE_DIR/version"
-          cp manifest.yml "$IMAGE_DIR/"
+          # --- Package boot partition ---
+          echo "Packaging boot partition..."
+          mkdir -p boot
+          tar xzf staging/boot-files.tar.gz -C boot/
+          tar czf "emp-image-${VERSION}-boot.tar.gz" -C boot .
 
-          # Package
-          tar czf "emp-base-${VERSION}.tar.gz" "$IMAGE_DIR/"
-          ls -lh "emp-base-${VERSION}.tar.gz"
+          # --- Repackage rootfs ---
+          echo "Packaging rootfs (this may take a while)..."
+          sudo tar czf "emp-image-${VERSION}-rootfs.tar.gz" -C rootfs .
+
+          echo ""
+          echo "=== Full Image Complete ==="
+          ls -lh emp-image-${VERSION}-*.tar.gz
+
+      # =====================================================================
+      # PUBLISH
+      # =====================================================================
 
       - name: Create release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           VERSION="${{ inputs.version }}"
-          TAG="base-${VERSION}"
+          TAG="image-${VERSION}"
           git tag "$TAG" 2>/dev/null && git push origin "$TAG" || true
           gh release create "$TAG" \
-            "emp-base-${VERSION}.tar.gz" \
+            emp-image-${VERSION}-boot.tar.gz \
+            emp-image-${VERSION}-rootfs.tar.gz \
             manifest.yml \
-            --title "Base Image $VERSION (${{ inputs.board }})" \
-            --notes "Base image for ${{ inputs.board }} board. Contains boot files, rootfs, kernel modules, and pre-installed software."
+            --title "Full Image ${VERSION} (${{ inputs.board }})" \
+            --generate-notes
 
-      - name: Upload artifact
+      - name: Upload artifacts
+        if: always() && !cancelled()
         uses: actions/upload-artifact@v4
         with:
-          name: emp-base-${{ inputs.version }}
-          path: emp-base-*.tar.gz
+          name: emp-image-${{ inputs.version }}
+          path: emp-image-*.tar.gz
           retention-days: 30
