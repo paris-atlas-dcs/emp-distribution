@@ -1,0 +1,14 @@
+[Unit]
+Description=Reset all lpGBT IC/EC controllers
+After=emp-clock.service
+Before=opcua-lpgbt.service
+Requires=emp-clock.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/bin/bash -c "for i in $(seq 0 11); do /opt/emp/current/emp-tools/bin/fwReset --ip emp_lpgbt --id $i; done"
+TimeoutStartSec=60
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,13 @@
+[Unit]
+Description=Load EMP FPGA firmware (device tree overlay)
+After=local-fs.target
+Before=emp-clock.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/bin/loadFirmware.sh hw_desc.dtbo
+TimeoutStartSec=30
+
+[Install]
+WantedBy=multi-user.target

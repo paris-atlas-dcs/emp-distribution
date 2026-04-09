@@ -1,7 +1,8 @@
 [Unit]
 Description=OpcUaLpGbtServer — lpGBT front-end OPC UA server
-After=network.target
+After=network.target emp-reset.service
 Wants=network.target
+Requires=emp-reset.service
 
 [Service]
 Type=simple

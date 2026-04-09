@@ -203,16 +203,20 @@ jobs:
           sudo mkdir -p rootfs/etc/systemd/system/multi-user.target.wants
           sudo mkdir -p rootfs/etc/systemd/system/timers.target.wants
 
-          # OPC UA servers
+          # Boot chain: firmware → clock → reset → OPC UA servers
+          sudo ln -sf /etc/systemd/system/emp-firmware.service \
+               rootfs/etc/systemd/system/multi-user.target.wants/
+          sudo ln -sf /etc/systemd/system/emp-clock.service \
+               rootfs/etc/systemd/system/multi-user.target.wants/
+          sudo ln -sf /etc/systemd/system/emp-reset.service \
+               rootfs/etc/systemd/system/multi-user.target.wants/
+
+          # OPC UA servers (depend on emp-reset via After/Requires)
           sudo ln -sf /etc/systemd/system/opcua-lpgbt.service \
                rootfs/etc/systemd/system/multi-user.target.wants/
           sudo ln -sf /etc/systemd/system/opcua-psmon.service \
                rootfs/etc/systemd/system/multi-user.target.wants/
           sudo ln -sf /etc/systemd/system/opcua-empmon.service \
-               rootfs/etc/systemd/system/multi-user.target.wants/
-
-          # Clock programmer (oneshot at boot)
-          sudo ln -sf /etc/systemd/system/clockProgrammer.service \
                rootfs/etc/systemd/system/multi-user.target.wants/
 
           # Temperature monitor (timer-based)

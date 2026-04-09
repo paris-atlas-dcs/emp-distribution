@@ -1,0 +1,15 @@
+[Unit]
+Description=Program Si5345 clock generator
+After=emp-firmware.service
+Before=emp-reset.service
+Requires=emp-firmware.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/opt/emp/current/emp-tools/bin/clkProgrammer -c
+ExecStartPost=/bin/sleep 2
+TimeoutStartSec=30
+
+[Install]
+WantedBy=multi-user.target
