@@ -4,8 +4,11 @@
 # To pin a specific version, uncomment and set the 'tag' field.
 # The asset pattern uses a glob — it matches whatever the latest release ships.
 
-distribution: "2026.04.2"
+distribution: "2026.04.3"
 
+# =============================================================================
+# ON-BOARD SOFTWARE — deployed to EMP via update tarball
+# =============================================================================
 components:
   OpcUaLpGbtServer:
     repo: paris-atlas-dcs/OpcUaLpGbtServer
@@ -17,7 +20,31 @@ components:
     asset: "psMonServer-*.tar.gz"
     # tag: "260409.3.6"   # uncomment to pin
 
-# --- EOS-hosted components (CERN EOS, Kerberos auth) ---
+# =============================================================================
+# CLIENT LIBRARIES — for building OPC UA clients that talk to EMP servers
+# =============================================================================
+client-libraries:
+  UaoClientForLpGbt:
+    repo: paris-atlas-dcs/UaoClientForLpGbt
+    note: "C++ client library for OPC UA communication with OpcUaLpGbtServer"
+    # Future: more client libraries can be added here
+    # UaoClientForPsMon:
+    #   repo: paris-atlas-dcs/UaoClientForPsMon
+
+# =============================================================================
+# SCADA INTEGRATION — WinCC OA / JCOP framework components (run on SCADA hosts)
+# =============================================================================
+scada:
+  fwlpgbt:
+    repo: paris-atlas-dcs/fwlpgbt
+    note: "WinCC OA JCOP framework for lpGBT monitoring panels"
+    # Future: more framework components can be added here
+    # fwPsMon:
+    #   repo: paris-atlas-dcs/fwPsMon
+
+# =============================================================================
+# EOS-HOSTED — CERN EOS artifacts (Kerberos auth required)
+# =============================================================================
 eos:
   firmware-overlay:
     eos-dir: /eos/project/a/atlasdcsdata/ci-artifacts/epos-bsp/emp/master
@@ -34,15 +61,11 @@ eos:
     pattern: "^emp-.*-rootfs-kernel-modules\\.tar\\.gz$"
     note: "AlmaLinux 9 rootfs + PetaLinux kernel modules — base image only"
 
-# --- Base image metadata ---
+# =============================================================================
+# BASE IMAGE METADATA
+# =============================================================================
 base:
   board: "emp"
   petalinux: "2023.2"
   os: "AlmaLinux 9"
   arch: "aarch64"
-
-# --- WinCC OA (not on board, tracked for compatibility) ---
-scada:
-  fwlpgbt:
-    repo: paris-atlas-dcs/fwlpgbt
-    note: "WinCC OA JCOP framework component — runs on SCADA, not on EMP"

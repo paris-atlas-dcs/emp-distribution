@@ -34,7 +34,7 @@ jobs:
           app-id: ${{ secrets.APP_ID }}
           private-key: ${{ secrets.APP_PRIVATE_KEY }}
           owner: paris-atlas-dcs
-          repositories: OpcUaLpGbtServer,psmonserver,LpGbtSw
+          repositories: OpcUaLpGbtServer,psmonserver,LpGbtSw,UaoClientForLpGbt,fwlpgbt
 
       - name: Determine version
         id: version
@@ -64,12 +64,35 @@ jobs:
             fi
           done
 
+      - name: Clone client libraries and SCADA components
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          mkdir -p staging/client-libraries staging/scada
+
+          # Client libraries (source repos for developers)
+          for component in $(yq '.client-libraries | keys | .[]' manifest.yml 2>/dev/null); do
+            repo=$(yq ".client-libraries.$component.repo" manifest.yml)
+            echo "Cloning $component from $repo..."
+            gh repo clone "$repo" "staging/client-libraries/$component" -- --depth 1 2>/dev/null || true
+            rm -rf "staging/client-libraries/$component/.git"
+          done
+
+          # SCADA integration (source repos for WinCC OA developers)
+          for component in $(yq '.scada | keys | .[]' manifest.yml 2>/dev/null); do
+            repo=$(yq ".scada.$component.repo // \"\"" manifest.yml)
+            [ -z "$repo" ] && continue
+            echo "Cloning $component from $repo..."
+            gh repo clone "$repo" "staging/scada/$component" -- --depth 1 2>/dev/null || true
+            rm -rf "staging/scada/$component/.git"
+          done
+
       - name: Assemble bundle
         run: |
           VERSION="${{ steps.version.outputs.version }}"
           mkdir -p bundle
 
-          # Extract component tarballs
+          # Extract on-board component tarballs
           for tarball in staging/*.tar.gz; do
             [ -f "$tarball" ] || continue
             echo "Extracting $(basename $tarball)..."
@@ -79,6 +102,16 @@ jobs:
           # Copy systemd units
           mkdir -p bundle/systemd
           cp systemd/*.service bundle/systemd/
+
+          # Copy client libraries (source, for developers)
+          if [ -d staging/client-libraries ] && [ "$(ls -A staging/client-libraries)" ]; then
+            cp -r staging/client-libraries bundle/
+          fi
+
+          # Copy SCADA integration (source, for WinCC OA developers)
+          if [ -d staging/scada ] && [ "$(ls -A staging/scada)" ]; then
+            cp -r staging/scada bundle/
+          fi
 
           # Copy manifest and version
           cp manifest.yml bundle/
