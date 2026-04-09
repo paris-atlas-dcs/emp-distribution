@@ -1,0 +1,44 @@
+# emp-distribution manifest
+# This file pins the exact version of every component in the distribution.
+# Edit this file to bump component versions; CI assembles the bundle.
+
+distribution: "2026.04.1"
+
+# --- Software (deployed via update tarball) ---
+components:
+  OpcUaLpGbtServer:
+    repo: paris-atlas-dcs/OpcUaLpGbtServer
+    tag: "260408.1.62"
+    asset: "OpcUaLpGbtServer-260408.1.62.tar.gz"
+
+  psmonserver:
+    repo: paris-atlas-dcs/psmonserver
+    tag: "260409.3.7"
+    asset: "psMonServer-260409.3.7.tar.gz"
+
+  LpGbtSw:
+    repo: paris-atlas-dcs/LpGbtSw
+    tag: "260408.1.12"
+    asset: "LpGbtSw-demonstrators.tar.gz"
+
+# --- Base image components (used by build-image workflow) ---
+base:
+  epos-bsp:
+    board: "emp-03-00-00"
+    petalinux: "2023.2"
+    note: "Boot files (BOOT.BIN, image.ub, boot.scr) from epos-bsp CI"
+
+  epos-rootfs:
+    os: "AlmaLinux 9"
+    arch: "aarch64"
+    note: "Root filesystem from epos-rootfs CI"
+
+  firmware:
+    hw-description: "emp-03-00-00"
+    note: "FPGA bitstream + device tree overlay from epos-bsp/hw-description"
+
+# --- WinCC OA (not on board, tracked for compatibility) ---
+scada:
+  fwlpgbt:
+    repo: paris-atlas-dcs/fwlpgbt
+    note: "WinCC OA JCOP framework component — runs on SCADA, not on EMP"

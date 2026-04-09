@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Template: copy this directory as sites/<your-site-name>/ -->
+<!-- and edit config-lpgbt.xml with your chip addresses and calibration -->
+<configuration xmlns="http://cern.ch/quasar/Configuration"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://cern.ch/quasar/Configuration ../Configuration/Configuration.xsd">
+
+    <LpGbt address="lpgbt-uio://emp_lpgbt_0" name="MyChip_0"
+           vrefTune="130" statusRefreshRate="1">
+        <AnalogPeripherals name="AnalogPeripherals" generalRefreshRate="1">
+            <AdcInput name="InternalTemperature" inputId="14">
+                <CalculatedVariable name="temperatureCelsius"
+                    value="$thisObjectAddress.value * 0.4570 + (-210.92)" />
+            </AdcInput>
+        </AnalogPeripherals>
+    </LpGbt>
+
+</configuration>

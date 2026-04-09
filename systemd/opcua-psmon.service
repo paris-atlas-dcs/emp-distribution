@@ -1,0 +1,18 @@
+[Unit]
+Description=psMonServer — crate PSU OPC UA server
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/emp/current/psMonServer/bin
+ExecStart=/opt/emp/current/psMonServer/bin/psMonServer --config_file /opt/emp/config/config-psmon.xml
+Restart=on-failure
+RestartSec=5
+StandardOutput=append:/var/log/emp/opcua-psmon.log
+StandardError=append:/var/log/emp/opcua-psmon.log
+Environment=LD_LIBRARY_PATH=/opt/emp/current/psMonServer/lib
+
+[Install]
+WantedBy=multi-user.target

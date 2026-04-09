@@ -1,0 +1,18 @@
+[Unit]
+Description=OpcUaLpGbtServer — lpGBT front-end OPC UA server
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/emp/current/OpcUaLpGbtServer/bin
+ExecStart=/opt/emp/current/OpcUaLpGbtServer/bin/OpcUaLpGbtServer --config_file /opt/emp/config/config-lpgbt.xml
+Restart=on-failure
+RestartSec=5
+StandardOutput=append:/var/log/emp/opcua-lpgbt.log
+StandardError=append:/var/log/emp/opcua-lpgbt.log
+Environment=LD_LIBRARY_PATH=/opt/emp/current/OpcUaLpGbtServer/lib
+
+[Install]
+WantedBy=multi-user.target

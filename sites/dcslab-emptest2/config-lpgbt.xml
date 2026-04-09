@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Site: dcslab-emptest2 (DCS Lab, 12 EMCI boards) -->
+<!-- Copy of the production config from OpcUaLpGbtServer/bin/config-dcslab-emci.xml -->
+<!-- This file is deployed to /opt/emp/config/ on the target board -->
