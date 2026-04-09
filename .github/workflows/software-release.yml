@@ -58,6 +58,11 @@ jobs:
             fi
           done
 
+      - name: Set up QEMU for aarch64
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+
       - name: Log in to GHCR
         uses: docker/login-action@v3
         with:
