@@ -60,6 +60,9 @@ jobs:
       # DOWNLOAD ALL COMPONENTS
       # =====================================================================
 
+      - name: Create staging directory
+        run: mkdir -p staging/software staging/gitlab
+
       - name: Download boot files from EOS
         uses: paris-atlas-dcs/epos-ci-images/.github/actions/eos-download@master
         with:
