@@ -250,20 +250,21 @@ jobs:
 
           # --- Install default configs ---
           echo "[7/7] Installing default configs..."
-          if [ -f rootfs/opt/emp/current/OpcUaLpGbtServer/bin/config-example.xml ]; then
-            sudo cp rootfs/opt/emp/current/OpcUaLpGbtServer/bin/config-example.xml \
-                     rootfs/opt/emp/current/OpcUaLpGbtServer/bin/config-site.xml
+          REL="rootfs/opt/emp/releases/${VERSION}"
+          if [ -f "$REL/OpcUaLpGbtServer/bin/config-example.xml" ]; then
+            sudo cp "$REL/OpcUaLpGbtServer/bin/config-example.xml" \
+                     "$REL/OpcUaLpGbtServer/bin/config-site.xml"
           fi
-          if [ -f rootfs/opt/emp/current/psMonServer/bin/config.xml ]; then
-            sudo cp rootfs/opt/emp/current/psMonServer/bin/config.xml \
-                     rootfs/opt/emp/current/psMonServer/bin/config-site.xml
+          if [ -f "$REL/psMonServer/bin/config.xml" ]; then
+            sudo cp "$REL/psMonServer/bin/config.xml" \
+                     "$REL/psMonServer/bin/config-site.xml"
           fi
           sudo cp manifest.yml rootfs/opt/emp/
 
           echo ""
           echo "=== /opt/emp contents ==="
           sudo ls -la rootfs/opt/emp/
-          sudo ls -la rootfs/opt/emp/current/
+          sudo ls -la rootfs/opt/emp/releases/${VERSION}/ || true
 
           # --- Package boot partition ---
           echo "Packaging boot partition..."
