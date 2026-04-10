@@ -65,7 +65,7 @@ jobs:
         with:
           eos-dir: /eos/project/a/atlasdcsdata/ci-artifacts/epos-bsp/${{ inputs.board }}/master
           filename: latest
-          pattern: "^${{ inputs.board }}-.*-boot-files\\.tar\\.gz$"
+          pattern: "^${{ inputs.board }}-.*-boot-files\\.tar"
           destination: staging/boot-files.tar.gz
           keytab: ${{ secrets.CERN_KEYTAB_B64 }}
 
@@ -74,7 +74,7 @@ jobs:
         with:
           eos-dir: /eos/project/a/atlasdcsdata/ci-artifacts/epos-bsp/${{ inputs.board }}/master
           filename: latest
-          pattern: "^${{ inputs.board }}-.*-rootfs-kernel-modules\\.tar\\.gz$"
+          pattern: "^${{ inputs.board }}-.*-rootfs-kernel-modules\\.tar"
           destination: staging/rootfs.tar.gz
           keytab: ${{ secrets.CERN_KEYTAB_B64 }}
 
@@ -83,7 +83,7 @@ jobs:
         with:
           eos-dir: /eos/project/a/atlasdcsdata/ci-artifacts/epos-bsp/${{ inputs.board }}/master
           filename: latest
-          pattern: "^${{ inputs.board }}-.*-firmware-overlay\\.tar\\.gz$"
+          pattern: "^${{ inputs.board }}-.*-firmware-overlay\\.tar"
           destination: staging/firmware-overlay.tar.gz
           keytab: ${{ secrets.CERN_KEYTAB_B64 }}
 
