@@ -266,34 +266,75 @@ jobs:
           sudo ls -la rootfs/opt/emp/
           sudo ls -la rootfs/opt/emp/releases/${VERSION}/ || true
 
-          # --- Package boot partition ---
-          echo "Packaging boot partition..."
+          # --- Create SD card image ---
+          IMAGE="emp-image-${VERSION}.img"
+          IMAGE_SIZE_MB=4096  # 4GB — auto-expands on first boot
+
+          echo "Creating ${IMAGE_SIZE_MB}MB disk image..."
+          dd if=/dev/zero of="$IMAGE" bs=1M count=${IMAGE_SIZE_MB} status=progress
+
+          # Partition: 512MB FAT32 (boot) + rest ext4 (rootfs)
+          echo "Partitioning..."
+          parted -s "$IMAGE" mklabel msdos
+          parted -s "$IMAGE" mkpart primary fat32 1MiB 513MiB
+          parted -s "$IMAGE" mkpart primary ext4 513MiB 100%
+          parted -s "$IMAGE" set 1 boot on
+
+          # Set up loopback device
+          LOOP=$(sudo losetup --find --show --partscan "$IMAGE")
+          echo "Loop device: $LOOP"
+
+          # Format partitions
+          echo "Formatting partitions..."
+          sudo mkfs.vfat -F 32 -n BOOT "${LOOP}p1"
+          sudo mkfs.ext4 -L rootfs "${LOOP}p2"
+
+          # Mount and populate
+          sudo mkdir -p /mnt/boot /mnt/rootfs
+
+          echo "Populating boot partition..."
+          sudo mount "${LOOP}p1" /mnt/boot
           mkdir -p boot
           tar xzf staging/boot-files.tar.gz -C boot/
-          tar czf "emp-image-${VERSION}-boot.tar.gz" -C boot .
+          sudo cp -r boot/* /mnt/boot/
+          sudo umount /mnt/boot
 
-          # --- Repackage rootfs ---
-          echo "Packaging rootfs (this may take a while)..."
-          sudo tar czf "emp-image-${VERSION}-rootfs.tar.gz" -C rootfs .
+          echo "Populating rootfs partition (this may take a while)..."
+          sudo mount "${LOOP}p2" /mnt/rootfs
+          sudo tar xzf staging/rootfs.tar.gz -C /mnt/rootfs/ 2>/dev/null || \
+            sudo cp -a rootfs/* /mnt/rootfs/
+
+          # Install firstboot script and marker
+          sudo cp scripts/emp-firstboot.sh /mnt/rootfs/usr/local/bin/
+          sudo chmod +x /mnt/rootfs/usr/local/bin/emp-firstboot.sh
+          sudo touch /mnt/rootfs/opt/emp/.firstboot
+
+          # Enable firstboot service
+          sudo cp systemd/emp-firstboot.service /mnt/rootfs/etc/systemd/system/
+          sudo mkdir -p /mnt/rootfs/etc/systemd/system/multi-user.target.wants
+          sudo ln -sf /etc/systemd/system/emp-firstboot.service \
+               /mnt/rootfs/etc/systemd/system/multi-user.target.wants/
+
+          sudo umount /mnt/rootfs
+
+          # Detach loop device
+          sudo losetup -d "$LOOP"
+
+          # Compress
+          echo "Compressing image..."
+          gzip "$IMAGE"
 
           echo ""
           echo "=== Full Image Complete ==="
-          ls -lh emp-image-${VERSION}-*.tar.gz
+          ls -lh "emp-image-${VERSION}.img.gz"
 
       # =====================================================================
       # PUBLISH
       # =====================================================================
 
-      - name: Upload boot files to EOS
+      - name: Upload image to EOS
         uses: paris-atlas-dcs/epos-ci-images/.github/actions/eos-upload@master
         with:
-          file: emp-image-${{ inputs.version }}-boot.tar.gz
-          eos-dir: /eos/project/a/atlasdcsdata/ci-artifacts/emp-distribution/image/${{ inputs.board }}
-          keytab: ${{ secrets.CERN_KEYTAB_B64 }}
-
-      - name: Upload rootfs to EOS
-        uses: paris-atlas-dcs/epos-ci-images/.github/actions/eos-upload@master
-        with:
-          file: emp-image-${{ inputs.version }}-rootfs.tar.gz
+          file: emp-image-${{ inputs.version }}.img.gz
           eos-dir: /eos/project/a/atlasdcsdata/ci-artifacts/emp-distribution/image/${{ inputs.board }}
           keytab: ${{ secrets.CERN_KEYTAB_B64 }}

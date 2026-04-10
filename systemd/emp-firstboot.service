@@ -1,0 +1,15 @@
+[Unit]
+Description=Expand root filesystem to fill SD card (first boot only)
+After=local-fs.target
+Before=emp-firmware.service
+ConditionPathExists=/opt/emp/.firstboot
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/bin/emp-firstboot.sh
+ExecStartPost=/bin/rm -f /opt/emp/.firstboot
+TimeoutStartSec=120
+
+[Install]
+WantedBy=multi-user.target

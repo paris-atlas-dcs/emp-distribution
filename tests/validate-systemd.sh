@@ -31,7 +31,7 @@ has_dep() {
 echo "--- Presence ---"
 for u in emp-firmware.service emp-clock.service emp-reset.service \
          opcua-lpgbt.service opcua-psmon.service opcua-empmon.service \
-         tempMonitor.service tempMonitor.timer; do
+         tempMonitor.service tempMonitor.timer emp-firstboot.service; do
     [ -f "$UNIT_DIR/$u" ] && pass "$u" || fail "missing $u"
 done
 
