@@ -154,14 +154,29 @@ jobs:
             tar xzf "$tarball" -C bundle/
           done
 
-          # Copy opcuaempmon (extract RPM contents)
+          # Strip version suffixes from directory names
+          cd bundle
+          for dir in OpcUaLpGbtServer-* psMonServer-*; do
+            [ -d "$dir" ] || continue
+            clean=$(echo "$dir" | sed 's/-[0-9].*//')
+            mv "$dir" "$clean" && echo "  $dir -> $clean"
+          done
+          cd $GITHUB_WORKSPACE
+
+          # Copy opcuaempmon (extract RPM → opt/empMonitor/)
           if ls staging/gitlab/opcuaempmon/build/*.rpm 1>/dev/null 2>&1; then
             echo "Extracting opcuaempmon RPM..."
-            mkdir -p bundle/opcuaempmon
-            cd staging/gitlab/opcuaempmon/build/
-            rpm2cpio *.rpm | cpio -idm 2>/dev/null
-            cp -r usr/local/* ../../../../../../bundle/opcuaempmon/ 2>/dev/null || \
-            cp -r opt/* ../../../../../../bundle/opcuaempmon/ 2>/dev/null || true
+            mkdir -p /tmp/empmon-extract
+            cd /tmp/empmon-extract
+            bsdtar xf $GITHUB_WORKSPACE/staging/gitlab/opcuaempmon/build/*.rpm 2>/dev/null || \
+              (rpm2cpio $GITHUB_WORKSPACE/staging/gitlab/opcuaempmon/build/*.rpm | cpio -idm 2>/dev/null)
+            if [ -d opt/empMonitor ]; then
+              cp -r opt/empMonitor $GITHUB_WORKSPACE/bundle/opcuaempmon
+              echo "  Extracted: $(ls $GITHUB_WORKSPACE/bundle/opcuaempmon/bin/ 2>/dev/null)"
+            else
+              echo "  WARNING: opt/empMonitor not found in RPM"
+              find . -type f | head -10
+            fi
             cd $GITHUB_WORKSPACE
           fi
 
