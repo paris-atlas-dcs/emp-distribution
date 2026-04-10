@@ -6,7 +6,7 @@ Software distribution for the ATLAS DCS EMP board.
 
 - **OpcUaLpGbtServer** — lpGBT front-end OPC UA server (port 21182)
 - **psMonServer** — crate PSU OPC UA server (port 22486)
-- **opcuaempmon** — EMP board monitoring OPC UA server (port 21183)
+- **opcuaempmon** — EMP board monitoring OPC UA server
 - **emp-tools** — board tools: clock programmer, firmware reset, Firefly monitor
 - **LpGbtSw CLI tools** — 17 command-line tools for lpGBT diagnostics
 - **FPGA firmware overlay** — bitstream + device tree for runtime loading
