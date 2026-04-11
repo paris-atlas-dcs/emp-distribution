@@ -1,7 +1,7 @@
 #!/bin/bash
 # smoke-test.sh — Comprehensive aarch64 smoke test in Docker QEMU
 #
-# Usage: ./tests/smoke-test.sh emp-2026.04.5.tar.gz
+# Usage: ./tests/smoke-test.sh emp-release-26.04.1.tar.gz
 #
 # Requires: Docker with aarch64 QEMU support
 #   docker run --rm --platform linux/arm64 almalinux:9 uname -m  # should print aarch64

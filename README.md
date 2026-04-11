@@ -18,8 +18,8 @@ Flash `emp-epos-VERSION.img.gz` to an SD card:
 
 ```bash
 lsblk                              # identify your SD card device
-gunzip emp-epos-2026.04.1.img.gz
-sudo dd if=emp-epos-2026.04.1.img of=/dev/sdX bs=4M status=progress
+gunzip emp-epos-26.04.1.img.gz
+sudo dd if=emp-epos-26.04.1.img of=/dev/sdX bs=4M status=progress
 sync
 ```
 
@@ -30,7 +30,7 @@ Insert the SD card, power on. Everything starts automatically. First boot takes 
 ## Software Update (running board)
 
 ```bash
-./scripts/deploy.sh <hostname> emp-release-2026.04.1.tar.gz
+./scripts/deploy.sh <hostname> emp-release-26.04.1.tar.gz
 ```
 
 Installs alongside the running version, switches over instantly. Previous version kept for rollback.

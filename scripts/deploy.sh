@@ -31,8 +31,8 @@ if [ ! -d "$SITE_DIR" ]; then
     exit 1
 fi
 
-# Extract version from tarball name (emp-VERSION.tar.gz)
-VERSION=$(echo "$TARBALL" | sed 's/emp-\(.*\)\.tar\.gz/\1/')
+# Extract version from tarball name (emp-release-VERSION.tar.gz)
+VERSION=$(echo "$TARBALL" | sed 's/emp-release-\(.*\)\.tar\.gz/\1/')
 REMOTE_BASE="/opt/emp"
 
 # Read target host from site config (default: site name)

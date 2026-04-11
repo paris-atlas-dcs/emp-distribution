@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EMP Distribution — ATLAS DCS</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.6.1/reveal.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.6.1/theme/black.min.css">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg-primary: #0d1117;
+    --bg-secondary: #161b22;
+    --bg-tertiary: #1c2333;
+    --accent: #00d4aa;
+    --accent-dim: #00a885;
+    --accent-glow: rgba(0, 212, 170, 0.15);
+    --text-primary: #e6edf3;
+    --text-secondary: #8b949e;
+    --text-muted: #6e7681;
+    --border: #30363d;
+    --code-bg: #0d1117;
+    --warn: #f0883e;
+    --blue: #58a6ff;
+  }
+
+  .reveal-viewport {
+    background: var(--bg-primary);
+    background-image:
+      radial-gradient(ellipse at 20% 80%, rgba(0, 212, 170, 0.03) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 20%, rgba(88, 166, 255, 0.03) 0%, transparent 50%);
+  }
+
+  .reveal {
+    font-family: 'Inter', -apple-system, sans-serif;
+    font-size: 32px;
+    color: var(--text-primary);
+  }
+
+  .reveal h1, .reveal h2, .reveal h3 {
+    font-family: 'Inter', sans-serif;
+    font-weight: 700;
+    color: var(--text-primary);
+    text-transform: none;
+    letter-spacing: -0.02em;
+  }
+
+  .reveal h1 { font-size: 2.2em; margin-bottom: 0.3em; }
+  .reveal h2 { font-size: 1.5em; margin-bottom: 0.6em; color: var(--accent); }
+  .reveal h3 { font-size: 1.1em; color: var(--text-secondary); }
+
+  .reveal p, .reveal li {
+    font-weight: 300;
+    line-height: 1.6;
+    color: var(--text-primary);
+  }
+
+  .reveal ul { list-style: none; padding-left: 0; }
+  .reveal ul li {
+    position: relative;
+    padding-left: 1.4em;
+    margin-bottom: 0.4em;
+  }
+  .reveal ul li::before {
+    content: '>';
+    position: absolute;
+    left: 0;
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 500;
+  }
+
+  .reveal code, .reveal pre code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75em;
+  }
+
+  .reveal pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1em;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.4);
+    width: 90%;
+    margin: 0.6em auto;
+  }
+
+  .reveal pre code {
+    color: var(--text-primary);
+    background: none;
+    padding: 0;
+    font-size: 0.7em;
+    line-height: 1.5;
+  }
+
+  .reveal .accent { color: var(--accent); }
+  .reveal .dim { color: var(--text-secondary); }
+  .reveal .muted { color: var(--text-muted); }
+  .reveal .blue { color: var(--blue); }
+  .reveal .warn { color: var(--warn); }
+
+  /* Slide-specific */
+  .title-slide h1 {
+    font-size: 2.0em;
+    line-height: 1.2;
+    margin-bottom: 0.2em;
+  }
+  .title-slide .subtitle {
+    font-size: 0.7em;
+    color: var(--text-secondary);
+    font-weight: 300;
+    margin-top: 0;
+  }
+  .title-slide .author {
+    font-size: 0.65em;
+    color: var(--text-muted);
+    margin-top: 2em;
+  }
+  .title-slide .org {
+    font-size: 0.5em;
+    color: var(--text-muted);
+  }
+
+  /* Tables */
+  .reveal table {
+    border-collapse: collapse;
+    width: 95%;
+    margin: 0.5em auto;
+    font-size: 0.65em;
+  }
+  .reveal table th {
+    background: var(--bg-tertiary);
+    color: var(--accent);
+    font-weight: 600;
+    text-align: left;
+    padding: 0.5em 0.7em;
+    border-bottom: 2px solid var(--accent-dim);
+    font-family: 'Inter', sans-serif;
+  }
+  .reveal table td {
+    padding: 0.45em 0.7em;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-primary);
+    vertical-align: top;
+  }
+  .reveal table tr:hover td {
+    background: var(--accent-glow);
+  }
+  .reveal table code {
+    font-size: 0.95em;
+    color: var(--accent);
+    background: rgba(0,212,170,0.08);
+    padding: 0.1em 0.3em;
+    border-radius: 3px;
+  }
+
+  /* Diagram boxes */
+  .diagram {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    margin: 0.5em auto;
+  }
+  .diagram-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.8em;
+    flex-wrap: wrap;
+  }
+  .dbox {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.4em 0.8em;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.6em;
+    color: var(--text-primary);
+    text-align: center;
+    min-width: 120px;
+    position: relative;
+  }
+  .dbox.accent-box {
+    border-color: var(--accent);
+    box-shadow: 0 0 12px var(--accent-glow);
+  }
+  .dbox.blue-box {
+    border-color: var(--blue);
+    box-shadow: 0 0 12px rgba(88,166,255,0.15);
+  }
+  .dbox.warn-box {
+    border-color: var(--warn);
+    box-shadow: 0 0 12px rgba(240,136,62,0.15);
+  }
+  .dbox .label {
+    font-size: 0.8em;
+    color: var(--text-muted);
+    display: block;
+    margin-top: 0.2em;
+  }
+  .arrow-down {
+    font-size: 1.2em;
+    color: var(--accent-dim);
+    line-height: 1;
+    padding: 0.1em 0;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .arrow-right {
+    font-size: 1.2em;
+    color: var(--accent-dim);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* Highlight badge */
+  .badge {
+    display: inline-block;
+    background: var(--accent);
+    color: var(--bg-primary);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.6em;
+    font-weight: 600;
+    padding: 0.15em 0.5em;
+    border-radius: 3px;
+    vertical-align: middle;
+  }
+
+  /* Two-column layout */
+  .columns {
+    display: flex;
+    gap: 2em;
+    align-items: flex-start;
+  }
+  .columns .col {
+    flex: 1;
+  }
+
+  /* Progress bar */
+  .reveal .progress {
+    color: var(--accent);
+    height: 3px;
+  }
+
+  .reveal .controls button {
+    color: var(--accent);
+  }
+
+  .reveal .slide-number {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.5em;
+    color: var(--text-muted);
+  }
+
+  /* Fragment custom */
+  .reveal .fragment.fade-up {
+    transform: translateY(20px);
+  }
+
+  /* Inline code */
+  .reveal p code, .reveal li code {
+    background: rgba(0,212,170,0.08);
+    color: var(--accent);
+    padding: 0.1em 0.35em;
+    border-radius: 3px;
+    font-size: 0.85em;
+  }
+
+  /* Separator line */
+  .sep {
+    width: 60px;
+    height: 3px;
+    background: var(--accent);
+    margin: 0.5em auto;
+    border-radius: 2px;
+  }
+
+  /* Big number stat */
+  .stat {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 2em;
+    font-weight: 700;
+    color: var(--accent);
+    line-height: 1;
+  }
+  .stat-label {
+    font-size: 0.55em;
+    color: var(--text-secondary);
+    font-weight: 300;
+  }
+
+  /* Boot chain custom */
+  .boot-chain {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.55em;
+  }
+  .boot-step {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.4em 1.2em;
+    min-width: 200px;
+    text-align: center;
+  }
+  .boot-step.highlight {
+    border-color: var(--accent);
+    box-shadow: 0 0 12px var(--accent-glow);
+  }
+  .boot-arrow {
+    color: var(--accent-dim);
+    font-size: 1.3em;
+    line-height: 1;
+    padding: 0.05em 0;
+  }
+  .boot-parallel {
+    display: flex;
+    gap: 1em;
+    align-items: flex-start;
+  }
+  .boot-branch {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+  }
+
+  /* Dir tree */
+  .dir-tree {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.62em;
+    text-align: left;
+    line-height: 1.7;
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1em 1.5em;
+    display: inline-block;
+    margin: 0.5em auto;
+  }
+  .dir-tree .dir { color: var(--blue); }
+  .dir-tree .sym { color: var(--accent); }
+  .dir-tree .file { color: var(--text-primary); }
+  .dir-tree .comment { color: var(--text-muted); }
+</style>
+</head>
+<body>
+<div class="reveal">
+<div class="slides">
+
+<!-- ============================================================ -->
+<!-- SLIDE 1: TITLE -->
+<!-- ============================================================ -->
+<section class="title-slide">
+  <div style="margin-top: 1em;">
+    <h1>EMP Distribution</h1>
+    <p class="subtitle">ATLAS DCS EMP Board Software Delivery</p>
+    <div class="sep"></div>
+    <p class="author">
+      Paris Moschovakos<br>
+      <span class="org">ATLAS DCS &mdash; CERN</span>
+    </p>
+    <p class="org">DCS Operations Meeting &mdash; April 2026</p>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 2: WHAT IS EMP DISTRIBUTION -->
+<!-- ============================================================ -->
+<section>
+  <h2>What is EMP Distribution?</h2>
+  <p style="font-size:0.8em; color:var(--text-secondary); margin-bottom:1em;">
+    Single package &mdash; everything to run an EMP board
+  </p>
+  <div class="columns" style="font-size:0.8em;">
+    <div class="col" style="text-align:center;">
+      <div class="dbox accent-box" style="padding:1em; min-width:200px;">
+        <span class="accent" style="font-size:1.3em; font-weight:600;">Full Image</span>
+        <span class="label">New board &rarr; flash &amp; go</span>
+        <span class="label" style="color:var(--text-muted); font-size:0.75em;">.img.gz &bull; ~2 GB</span>
+      </div>
+    </div>
+    <div class="col" style="text-align:center;">
+      <div class="dbox blue-box" style="padding:1em; min-width:200px;">
+        <span class="blue" style="font-size:1.3em; font-weight:600;">Software Release</span>
+        <span class="label">Existing board &rarr; update over SSH</span>
+        <span class="label" style="color:var(--text-muted); font-size:0.75em;">.tar.gz &bull; ~80 MB</span>
+      </div>
+    </div>
+  </div>
+  <p style="font-size:0.6em; color:var(--text-muted); margin-top:1.5em;">
+    Same software content, different delivery mechanism
+  </p>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 3: WHAT'S IN THE BUNDLE -->
+<!-- ============================================================ -->
+<section>
+  <h2>What's in the Bundle?</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Component</th>
+        <th>What</th>
+        <th>Port</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>OpcUaLpGbtServer</code></td>
+        <td>lpGBT OPC UA server + CLI tools</td>
+        <td><code>21182</code></td>
+      </tr>
+      <tr>
+        <td><code>psMonServer</code></td>
+        <td>PSU monitoring OPC UA server</td>
+        <td><code>22486</code></td>
+      </tr>
+      <tr>
+        <td><code>opcuaempmon</code></td>
+        <td>Board monitoring OPC UA server</td>
+        <td><code>24810</code></td>
+      </tr>
+      <tr>
+        <td><code>emp-tools</code></td>
+        <td>Clock programming, FPGA overlay, reset</td>
+        <td>&mdash;</td>
+      </tr>
+      <tr>
+        <td><code>LpGbtSw</code></td>
+        <td>CLI tools for lpGBT configuration</td>
+        <td>&mdash;</td>
+      </tr>
+      <tr>
+        <td>Firmware overlay</td>
+        <td>FPGA bitstream (device tree overlay)</td>
+        <td>&mdash;</td>
+      </tr>
+      <tr>
+        <td>systemd services</td>
+        <td>Boot chain, startup orchestration</td>
+        <td>&mdash;</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 4: FULL IMAGE — NEW BOARD -->
+<!-- ============================================================ -->
+<section>
+  <h2>Full Image &mdash; New Board Setup</h2>
+  <pre><code>$ gunzip -c emp-release-26.04.1.img.gz | sudo dd of=/dev/sdX bs=4M status=progress</code></pre>
+  <div style="font-size:0.75em; margin-top:1em;">
+    <ul>
+      <li>Flash to SD card <span class="dim">&mdash; one command</span></li>
+      <li>Insert, power on, done</li>
+      <li>Auto-resize filesystem on first boot</li>
+      <li><span class="accent">~60 seconds</span> to fully operational</li>
+    </ul>
+  </div>
+  <div style="margin-top:1.2em; display:flex; align-items:center; justify-content:center; gap:0.8em; font-family:'JetBrains Mono',monospace; font-size:0.6em;">
+    <div class="dbox" style="min-width:80px;">Flash</div>
+    <span class="arrow-right">&rarr;</span>
+    <div class="dbox" style="min-width:80px;">Insert</div>
+    <span class="arrow-right">&rarr;</span>
+    <div class="dbox" style="min-width:80px;">Power On</div>
+    <span class="arrow-right">&rarr;</span>
+    <div class="dbox accent-box" style="min-width:100px;">Operational<span class="label">60s</span></div>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 5: BOOT SEQUENCE -->
+<!-- ============================================================ -->
+<section>
+  <h2>Boot Sequence</h2>
+  <p style="font-size:0.6em; color:var(--text-secondary); margin-bottom:0.6em;">systemd orchestration &mdash; ordered dependencies</p>
+  <div class="boot-chain">
+    <div class="boot-step" style="border-color:var(--warn);">emp-firstboot <span style="color:var(--text-muted);">(resize, first boot only)</span></div>
+    <div class="boot-arrow">&darr;</div>
+    <div class="boot-step highlight">emp-firmware <span style="color:var(--text-muted);">(load FPGA overlay)</span></div>
+    <div class="boot-arrow">&darr;</div>
+    <div class="boot-step highlight">emp-clock <span style="color:var(--text-muted);">(program Si5345)</span></div>
+    <div class="boot-arrow">&darr;</div>
+
+    <div class="boot-parallel">
+      <div class="boot-branch">
+        <div class="boot-step highlight">emp-reset <span style="color:var(--text-muted);">(lpGBT ICs)</span></div>
+        <div class="boot-arrow">&darr;</div>
+        <div class="boot-step" style="border-color:var(--accent);">opcua-lpgbt<span class="label">:21182</span></div>
+      </div>
+
+      <div class="boot-branch">
+        <div class="boot-step" style="border-color:var(--blue);">opcua-empmon<span class="label">:24810</span></div>
+        <div class="boot-arrow">&darr;</div>
+        <div class="boot-step" style="border-color:var(--blue); border-style:dashed;">tempMonitor.timer<span class="label">periodic</span></div>
+      </div>
+
+      <div class="boot-branch" style="margin-top:0;">
+        <div class="boot-step" style="border-color:var(--warn); margin-top:0;">opcua-psmon<span class="label">:22486</span></div>
+        <div class="boot-arrow" style="visibility:hidden;">&darr;</div>
+        <div class="boot-step" style="visibility:hidden;">x</div>
+      </div>
+    </div>
+  </div>
+  <p style="font-size:0.5em; color:var(--text-muted); margin-top:0.6em;">
+    psmon starts independently &bull; empmon waits for clock &bull; lpgbt waits for reset
+  </p>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 6: SYSTEMD SERVICES DETAIL -->
+<!-- ============================================================ -->
+<section>
+  <h2>Systemd Services</h2>
+  <table style="font-size:0.55em;">
+    <thead>
+      <tr>
+        <th>Service</th>
+        <th>Type</th>
+        <th>Function</th>
+        <th>After</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>emp-firstboot</code></td>
+        <td>oneshot</td>
+        <td>Auto-resize root filesystem</td>
+        <td>first boot only</td>
+      </tr>
+      <tr>
+        <td><code>emp-firmware</code></td>
+        <td>oneshot</td>
+        <td>Load FPGA device tree overlay</td>
+        <td>firstboot</td>
+      </tr>
+      <tr>
+        <td><code>emp-clock</code></td>
+        <td>oneshot</td>
+        <td>Program Si5345 clock synthesizer</td>
+        <td>firmware</td>
+      </tr>
+      <tr>
+        <td><code>emp-reset</code></td>
+        <td>oneshot</td>
+        <td>Reset lpGBT ICs via GPIO</td>
+        <td>clock</td>
+      </tr>
+      <tr>
+        <td><code>opcua-lpgbt</code></td>
+        <td>simple</td>
+        <td>lpGBT OPC UA server <span class="badge">21182</span></td>
+        <td>reset</td>
+      </tr>
+      <tr>
+        <td><code>opcua-psmon</code></td>
+        <td>simple</td>
+        <td>PSU monitoring server <span class="badge">22486</span></td>
+        <td>network</td>
+      </tr>
+      <tr>
+        <td><code>opcua-empmon</code></td>
+        <td>simple</td>
+        <td>Board monitoring server <span class="badge">24810</span></td>
+        <td>clock</td>
+      </tr>
+      <tr>
+        <td><code>tempMonitor.timer</code></td>
+        <td>timer</td>
+        <td>Periodic Firefly temperature check</td>
+        <td>empmon</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 7: SOFTWARE UPDATE -->
+<!-- ============================================================ -->
+<section>
+  <h2>Software Update</h2>
+  <pre><code>$ ./deploy.sh emp-board-01 emp-release-26.04.1.tar.gz</code></pre>
+  <div style="font-size:0.75em; margin-top:0.8em;">
+    <ul>
+      <li>One command &mdash; deploys over SSH</li>
+      <li>Atomic symlink swap <span class="dim">&mdash; zero-downtime preparation</span></li>
+      <li>Previous version kept for instant rollback</li>
+    </ul>
+  </div>
+  <div class="dir-tree" style="margin-top:0.8em;">
+    <span class="dir">/opt/emp/</span><br>
+    &nbsp;&nbsp;<span class="sym">current</span> &rarr; <span class="sym">releases/26.04.1/</span> <span class="comment"># atomic symlink</span><br>
+    &nbsp;&nbsp;<span class="dir">releases/</span><br>
+    &nbsp;&nbsp;&nbsp;&nbsp;<span class="dir">26.04.1/</span> <span class="comment"># previous &mdash; kept</span><br>
+    &nbsp;&nbsp;&nbsp;&nbsp;<span class="dir">26.04.1/</span> <span class="comment"># new &mdash; active</span><br>
+    &nbsp;&nbsp;<span class="file">version</span>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 8: ROLLBACK -->
+<!-- ============================================================ -->
+<section>
+  <h2>Rollback</h2>
+  <pre><code>$ ./rollback.sh emp-board-01</code></pre>
+  <div style="font-size:0.75em; margin-top:1em;">
+    <ul>
+      <li>Swaps symlink back to previous release</li>
+      <li>Restarts all services</li>
+      <li>Always safe &mdash; previous version untouched on disk</li>
+    </ul>
+  </div>
+  <div style="margin-top:1.2em; display:flex; align-items:center; justify-content:center; gap:0.6em; font-family:'JetBrains Mono',monospace; font-size:0.6em;">
+    <div class="dbox warn-box" style="min-width:100px;">v26.04.1<span class="label" style="color:var(--warn);">problem</span></div>
+    <span class="arrow-right">&rarr;</span>
+    <div class="dbox" style="min-width:120px; font-size:0.9em;">rollback.sh</div>
+    <span class="arrow-right">&rarr;</span>
+    <div class="dbox accent-box" style="min-width:100px;">v26.04.1<span class="label">restored</span></div>
+  </div>
+  <p style="font-size:0.55em; color:var(--text-muted); margin-top:1em;">
+    No rebuild. No re-download. Symlink swap + service restart.
+  </p>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 9: CI/CD PIPELINE -->
+<!-- ============================================================ -->
+<section>
+  <h2>CI/CD Pipeline</h2>
+  <div class="diagram" style="margin-top:0.5em;">
+    <div class="diagram-row">
+      <div class="dbox" style="min-width:130px;">
+        <span style="color:var(--text-primary);">GitHub</span>
+        <span class="label">OpcUaLpGbtServer<br>psMonServer<br>opcuaempmon</span>
+      </div>
+      <div class="dbox" style="min-width:130px;">
+        <span style="color:var(--text-primary);">CERN GitLab</span>
+        <span class="label">emp-tools<br>firmware</span>
+      </div>
+    </div>
+    <div class="arrow-down">&darr;</div>
+    <div class="dbox accent-box" style="min-width:280px; padding:0.6em 1em;">
+      <span class="accent" style="font-weight:600;">Software Release Workflow</span>
+      <span class="label">pull components &bull; build &bull; package &bull; test</span>
+    </div>
+    <div class="arrow-down">&darr;</div>
+    <div class="diagram-row" style="gap:1.5em;">
+      <div class="dbox blue-box" style="min-width:140px;">
+        <span class="blue">CERN EOS</span>
+        <span class="label">release artifacts</span>
+      </div>
+      <div class="dbox" style="min-width:140px;">
+        <span style="color:var(--text-primary);">Full Image</span>
+        <span class="label">.img.gz</span>
+      </div>
+      <div class="dbox" style="min-width:140px;">
+        <span style="color:var(--text-primary);">SW Release</span>
+        <span class="label">.tar.gz</span>
+      </div>
+    </div>
+  </div>
+  <p style="font-size:0.55em; color:var(--text-muted); margin-top:0.6em;">
+    Latest versions by default &bull; pinnable per-component &bull; reproducible builds
+  </p>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 10: DIRECTORY LAYOUT -->
+<!-- ============================================================ -->
+<section>
+  <h2>On-Board Directory Layout</h2>
+  <div class="dir-tree" style="font-size:0.58em; line-height:1.8;">
+    <span class="dir">/opt/emp/</span><br>
+    <span style="color:var(--text-muted);">&boxvr;&boxh;&boxh;</span> <span class="sym">current</span> &rarr; <span class="sym">releases/26.04.1/</span><br>
+    <span style="color:var(--text-muted);">&boxvr;&boxh;&boxh;</span> <span class="dir">releases/</span><br>
+    <span style="color:var(--text-muted);">&boxv;</span>&nbsp;&nbsp;&nbsp;<span style="color:var(--text-muted);">&boxur;&boxh;&boxh;</span> <span class="dir">26.04.1/</span><br>
+    <span style="color:var(--text-muted);">&boxv;</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:var(--text-muted);">&boxvr;&boxh;&boxh;</span> <span class="dir">OpcUaLpGbtServer/</span> <span class="comment">&nbsp;server + CLI tools</span><br>
+    <span style="color:var(--text-muted);">&boxv;</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:var(--text-muted);">&boxvr;&boxh;&boxh;</span> <span class="dir">psMonServer/</span><br>
+    <span style="color:var(--text-muted);">&boxv;</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:var(--text-muted);">&boxvr;&boxh;&boxh;</span> <span class="dir">opcuaempmon/</span><br>
+    <span style="color:var(--text-muted);">&boxv;</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:var(--text-muted);">&boxvr;&boxh;&boxh;</span> <span class="dir">emp-tools/</span><br>
+    <span style="color:var(--text-muted);">&boxv;</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:var(--text-muted);">&boxur;&boxh;&boxh;</span> <span class="dir">firmware/</span><br>
+    <span style="color:var(--text-muted);">&boxur;&boxh;&boxh;</span> <span class="file">version</span><br>
+  </div>
+  <p style="font-size:0.55em; color:var(--text-muted); margin-top:0.5em;">
+    All services reference <code>/opt/emp/current/</code> &mdash; symlink makes updates atomic
+  </p>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 11: TESTING -->
+<!-- ============================================================ -->
+<section>
+  <h2>Testing</h2>
+  <div class="columns" style="font-size:0.7em;">
+    <div class="col" style="text-align:center;">
+      <div class="stat">28/28</div>
+      <div class="stat-label">systemd unit validation</div>
+      <div style="margin-top:0.8em;">
+        <div class="stat">49/49</div>
+        <div class="stat-label">smoke tests passed</div>
+      </div>
+    </div>
+    <div class="col">
+      <ul style="font-size:0.85em;">
+        <li><code>validate-bundle.sh</code><br><span class="dim" style="font-size:0.8em;">Package integrity, file permissions</span></li>
+        <li><code>validate-systemd.sh</code><br><span class="dim" style="font-size:0.8em;">Unit file syntax, dependency graph</span></li>
+        <li><code>smoke-test.sh</code><br><span class="dim" style="font-size:0.8em;">Docker QEMU &mdash; full boot test</span></li>
+      </ul>
+    </div>
+  </div>
+  <div class="sep" style="margin-top:1em;"></div>
+  <p style="font-size:0.6em; color:var(--text-secondary); margin-top:0.5em;">
+    Verified on real hardware &mdash; <span class="accent">emp-test2</span>, 12 EMCI boards
+  </p>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 12: SUMMARY -->
+<!-- ============================================================ -->
+<section>
+  <h2>Summary</h2>
+  <div style="font-size:0.8em; margin-top:0.5em;">
+    <ul>
+      <li><span class="accent">Flash once</span>, update over SSH</li>
+      <li>Automatic boot chain, auto-resize</li>
+      <li>Instant rollback &mdash; one command</li>
+      <li>CI-built, tested, reproducible</li>
+    </ul>
+  </div>
+  <div style="margin-top:1.5em; display:flex; align-items:center; justify-content:center; gap:0.6em; font-family:'JetBrains Mono',monospace; font-size:0.55em;">
+    <div class="dbox" style="min-width:80px;">Build</div>
+    <span class="arrow-right">&rarr;</span>
+    <div class="dbox" style="min-width:80px;">Test</div>
+    <span class="arrow-right">&rarr;</span>
+    <div class="dbox" style="min-width:80px;">Deploy</div>
+    <span class="arrow-right">&rarr;</span>
+    <div class="dbox accent-box" style="min-width:90px;">Running<span class="label">60s</span></div>
+  </div>
+  <div style="margin-top:1.5em;">
+    <p style="font-size:0.5em; color:var(--text-muted);">
+      Paris Moschovakos &bull; ATLAS DCS &bull; CERN &bull; April 2026
+    </p>
+  </div>
+</section>
+
+</div><!-- /.slides -->
+</div><!-- /.reveal -->
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.6.1/reveal.min.js"></script>
+<script>
+Reveal.initialize({
+  hash: true,
+  slideNumber: 'c/t',
+  width: 1280,
+  height: 720,
+  margin: 0.08,
+  transition: 'fade',
+  transitionSpeed: 'fast',
+  backgroundTransition: 'fade',
+  center: true,
+  controlsTutorial: false,
+  progress: true,
+  controls: true,
+  keyboard: true,
+  overview: true
+});
+</script>
+</body>
+</html>

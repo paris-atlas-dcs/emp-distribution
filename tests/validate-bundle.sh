@@ -1,7 +1,7 @@
 #!/bin/bash
 # validate-bundle.sh — Validate EMP software bundle structure and integrity
 #
-# Usage: ./tests/validate-bundle.sh emp-2026.04.4.tar.gz
+# Usage: ./tests/validate-bundle.sh emp-release-26.04.1.tar.gz
 #
 # Runs on the host (no Docker needed). Checks structure, file types,
 # permissions, and consistency. Fast — no binary execution.

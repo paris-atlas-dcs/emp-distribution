@@ -1,7 +1,7 @@
 #!/bin/bash
 # run-all.sh — Run all test suites against an EMP distribution bundle
 #
-# Usage: ./tests/run-all.sh emp-2026.04.5.tar.gz
+# Usage: ./tests/run-all.sh emp-release-26.04.1.tar.gz
 #
 # Runs in order:
 #   1. validate-bundle.sh  — structure, types, permissions (host, instant)
