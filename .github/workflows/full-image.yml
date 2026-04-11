@@ -198,15 +198,18 @@ jobs:
             sudo cp -r staging/gitlab/emp-tools rootfs/opt/emp/releases/${VERSION}/
           fi
 
-          # --- Install opcuaempmon (from RPM) ---
+          # --- Install opcuaempmon (from RPM → opt/empMonitor/) ---
           if ls staging/gitlab/opcuaempmon/build/*.rpm 1>/dev/null 2>&1; then
             echo "  Installing opcuaempmon from RPM..."
             mkdir -p /tmp/empmon-extract
-            cd staging/gitlab/opcuaempmon/build/
-            rpm2cpio *.rpm | (cd /tmp/empmon-extract && cpio -idm 2>/dev/null)
+            cd /tmp/empmon-extract
+            bsdtar xf $GITHUB_WORKSPACE/staging/gitlab/opcuaempmon/build/*.rpm 2>/dev/null || \
+              (rpm2cpio $GITHUB_WORKSPACE/staging/gitlab/opcuaempmon/build/*.rpm | cpio -idm 2>/dev/null)
+            if [ -d opt/empMonitor ]; then
+              sudo cp -r opt/empMonitor $GITHUB_WORKSPACE/rootfs/opt/emp/releases/${VERSION}/opcuaempmon
+              echo "  Installed: $(ls $GITHUB_WORKSPACE/rootfs/opt/emp/releases/${VERSION}/opcuaempmon/bin/ 2>/dev/null)"
+            fi
             cd $GITHUB_WORKSPACE
-            sudo mkdir -p rootfs/opt/emp/releases/${VERSION}/opcuaempmon
-            sudo cp -r /tmp/empmon-extract/* rootfs/opt/emp/releases/${VERSION}/opcuaempmon/ 2>/dev/null || true
           fi
 
           # --- Create current symlink ---
