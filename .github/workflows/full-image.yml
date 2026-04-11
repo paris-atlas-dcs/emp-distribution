@@ -304,10 +304,12 @@ jobs:
 
           echo "Populating rootfs partition (this may take a while)..."
           sudo mount "${LOOP}p2" /mnt/rootfs
-          sudo tar xzf staging/rootfs.tar.gz -C /mnt/rootfs/ 2>/dev/null || \
-            sudo cp -a rootfs/* /mnt/rootfs/
+
+          # Copy the enriched rootfs (base OS + all software from steps 1-7)
+          sudo cp -a rootfs/* /mnt/rootfs/
 
           # Install firstboot script and marker
+          sudo mkdir -p /mnt/rootfs/usr/local/bin /mnt/rootfs/opt/emp
           sudo cp scripts/emp-firstboot.sh /mnt/rootfs/usr/local/bin/
           sudo chmod +x /mnt/rootfs/usr/local/bin/emp-firstboot.sh
           sudo touch /mnt/rootfs/opt/emp/.firstboot
