@@ -4,7 +4,7 @@
 # To pin a specific version, uncomment and set the 'tag' field.
 # The asset pattern uses a glob — it matches whatever the latest release ships.
 
-distribution: "2026.04.4"
+distribution: "2026.04.1"
 
 # =============================================================================
 # ON-BOARD SOFTWARE — deployed to EMP via update tarball

@@ -5,10 +5,9 @@ name: Full Image
 # Root partition: AlmaLinux 9 + kernel modules + all software pre-installed
 #                 + systemd services enabled + firmware in /lib/firmware/
 #
-# Output: emp-image-<version>-boot.tar.gz   (extract to SD boot partition)
-#         emp-image-<version>-rootfs.tar.gz  (extract to SD root partition)
+# Output: emp-epos-<version>.img.gz (flashable SD card image)
 #
-# The user does: format SD card (2 partitions), extract both tarballs, boot.
+# The user does: gunzip + dd to SD card, insert, power on.
 
 on:
   workflow_dispatch:
@@ -270,7 +269,7 @@ jobs:
           sudo ls -la rootfs/opt/emp/releases/${VERSION}/ || true
 
           # --- Create SD card image ---
-          IMAGE="emp-image-${VERSION}.img"
+          IMAGE="emp-epos-${VERSION}.img"
           IMAGE_SIZE_MB=4096  # 4GB — auto-expands on first boot
 
           echo "Creating ${IMAGE_SIZE_MB}MB disk image..."
@@ -331,7 +330,7 @@ jobs:
 
           echo ""
           echo "=== Full Image Complete ==="
-          ls -lh "emp-image-${VERSION}.img.gz"
+          ls -lh "emp-epos-${VERSION}.img.gz"
 
       # =====================================================================
       # PUBLISH
@@ -340,6 +339,6 @@ jobs:
       - name: Upload image to EOS
         uses: paris-atlas-dcs/epos-ci-images/.github/actions/eos-upload@master
         with:
-          file: emp-image-${{ inputs.version }}.img.gz
+          file: emp-epos-${{ inputs.version }}.img.gz
           eos-dir: /eos/project/a/atlasdcsdata/ci-artifacts/emp-distribution/image/${{ inputs.board }}
           keytab: ${{ secrets.CERN_KEYTAB_B64 }}

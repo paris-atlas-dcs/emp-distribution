@@ -205,13 +205,13 @@ jobs:
           echo "$VERSION" > bundle/version
 
           # Package
-          tar czf "emp-${VERSION}.tar.gz" -C bundle .
-          echo "Built emp-${VERSION}.tar.gz"
-          ls -lh "emp-${VERSION}.tar.gz"
+          tar czf "emp-release-${VERSION}.tar.gz" -C bundle .
+          echo "Built emp-release-${VERSION}.tar.gz"
+          ls -lh "emp-release-${VERSION}.tar.gz"
 
       - name: Upload to EOS
         uses: paris-atlas-dcs/epos-ci-images/.github/actions/eos-upload@master
         with:
-          file: emp-${{ steps.version.outputs.version }}.tar.gz
+          file: emp-release-${{ steps.version.outputs.version }}.tar.gz
           eos-dir: /eos/project/a/atlasdcsdata/ci-artifacts/emp-distribution/software
           keytab: ${{ secrets.CERN_KEYTAB_B64 }}
